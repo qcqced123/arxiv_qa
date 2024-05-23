@@ -1,0 +1,98 @@
+{
+    "pipeline_setting": {
+        "type": "train",
+        "name": "ArxivCasualLanguageModeling",
+        "trainer": "CLMTuner",
+        "loop": "train_loop",
+        "task": "CasualLanguageModel",
+        "domain": "commerce/amazon",
+        "dataset": "PretrainDataset",
+        "model_name": "meta-llama/Llama-2-7b-hf",
+        "tokenizer_name": "meta-llama/Llama-2-7b-hf",
+        "resume": false,
+        "checkpoint_dir": "./saved/"
+    },
+
+    "fine_tune_options": {
+        "use_pretrained": true,
+        "hub": "huggingface",
+        "lora": false,
+        "qlora": true,
+        "lora_rank": 8,
+        "lora_alpha": 32,
+        "lora_dropout": 0.1,
+        "task_type": "None",
+        "prompt_tuning": false,
+        "prompt_tuning_type": "P-TUNING",
+        "num_virtual_tokens": 2,
+        "virtual_token_dim": 768,
+        "prompt_encoder_hidden_size": 768,
+        "max_len": 4096,
+        "layer_norm_eps": 1e-7,
+        "attention_probs_dropout_prob": 0.1,
+        "hidden_dropout_prob": 0.1,
+        "init_weight": "kaiming_normal",
+        "initializer_range": 0.02
+    },
+
+    "data_settings": {
+        "datafolder": "arxiv_qa",
+        "batching": "random",
+        "epochs": 1,
+        "batch_size": 8,
+        "val_batch_size": 8,
+        "encoder_reparameterization_type": "LSTM",
+        "val_check": 9999999
+    },
+
+    "optimizer_options": {
+        "optimizer": "AdamW",
+        "llrd": false,
+        "lr": 4e-4,
+        "weight_decay": 1e-2,
+        "adam_epsilon": 1e-6,
+        "use_bertadam": false,
+        "betas": [0.9, 0.999]
+    },
+
+    "scheduler_options": {
+        "scheduler": "cosine_annealing",
+        "batch_scheduler": true,
+        "num_cycles": 1,
+        "warmup_ratio": 0.1
+    },
+
+    "gradient_settings": {
+        "amp_scaler": true,
+        "gradient_checkpoint": true,
+        "clipping_grad": true,
+        "n_gradient_accumulation_steps": 1,
+        "max_grad_norm": 10
+    },
+
+    "loss_options": {
+        "losses_fn": "CrossEntropyLoss",
+        "val_losses_fn": "CrossEntropyLoss",
+        "reduction": "mean"
+    },
+
+    "metrics_options": {
+        "metrics": ["ppl", "accuracy"]
+    },
+
+    "common_settings": {
+        "wandb": true,
+        "seed": 42,
+        "n_gpu": 1,
+        "gpu_id": 0,
+        "num_workers": 4
+    },
+
+    "model_utils": {
+        "stop_mode": "min",
+        "freeze": false,
+        "num_freeze": -1,
+        "reinit": false,
+        "num_reinit": 1
+    }
+}

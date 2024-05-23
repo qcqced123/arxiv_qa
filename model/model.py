@@ -5,11 +5,12 @@ import model.pooling as pooling
 
 from torch import Tensor
 from typing import List, Tuple, Dict
+
+from model.mlm import MLMHead
+from model.clm import CLMHead
+from configuration import CFG
 from model.model_utils import freeze, reinit_topk
 from model.abstract_task import AbstractTask
-from model.clm import CLMHead
-from model.mlm import MLMHead
-from configuration import CFG
 
 
 class MaskedLanguageModel(nn.Module, AbstractTask):
@@ -52,7 +53,10 @@ class MaskedLanguageModel(nn.Module, AbstractTask):
 
 class CasualLanguageModel(nn.Module, AbstractTask):
     """ Custom Model for CLM Task, which is used for pre-training Auto-Regressive Model (AR),
-    like as GPT, T5 ...
+    like as GPT, T5, llama ... etc
+
+    Also, you can use this task module for text generation,
+    text summarization with generation ... any other task ,which is needed to generate text from prompt sentence
 
     Notes:
         L = L_CLM (pure language modeling)

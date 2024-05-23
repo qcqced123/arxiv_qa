@@ -1,5 +1,4 @@
 import gc
-
 import wandb
 import numpy as np
 import transformers
@@ -21,7 +20,7 @@ from typing import Tuple, Any, Union, List, Callable, Dict
 
 from configuration import CFG
 from model import model as task
-from experiment.tuner import mlm, clm, sbo
+from model import mlm, clm
 from dataset_class.preprocessing import load_all_types_dataset
 from trainer.trainer_utils import get_optimizer_grouped_parameters, get_scheduler
 from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler
@@ -469,20 +468,20 @@ class CLMTuner(PreTrainTuner):
         return valid_losses.avg
 
 
-class TextGenerationTuner:
+class TextGenerationTuner(PreTrainTuner):
     """ Fine-tune class for Text Generation, Summarization
     """
     def __init__(self, cfg: CFG, generator: torch.Generator) -> None:
-        self.cfg = cfg
-        self.generator = generator
-        self.tokenizer = self.cfg.tokenizer
-        self.model_name = self.cfg.module_name
-        self.metric_list = self.cfg.metrics
+        super(TextGenerationTuner, self).__init__(cfg=cfg, generator=generator)
 
     def make_batch(self):
         pass
 
     def model_setting(self):
+        pass
+
+    def generate(self):
+        """ greedy search """
         pass
 
     def train_val_fn(self):
