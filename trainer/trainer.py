@@ -481,7 +481,7 @@ class TextGenerationTuner(PreTrainTuner):
         pass
 
     def generate(self):
-        """ greedy search """
+        """ baseline generate function for text generation task """
         pass
 
     def train_val_fn(self):
