@@ -308,9 +308,16 @@ def build_doc_embedding_db(df: pd.DataFrame) -> pd.DataFrame:
     for i, row in tqdm(df.iterrows()):
         cnt = 0
         pid, title, text = row['pid'], row['title'], row['text']
-        inputs = tokenizer(text, padding=False, truncation=False, add_special_tokens=False)
+        try:
+            inputs = tokenizer(text, padding=False, truncation=False, add_special_tokens=False)
 
-        for data in tqdm(split_longer_text_with_sliding_window(inputs['input_ids'], 1536, 256)):
+        except Exception as e:
+            print(e)
+            print(f"Error occurred in the paper: {pid, title}")
+            print(f"Error text: {text}")
+            continue
+
+        for data in split_longer_text_with_sliding_window(inputs['input_ids'], 1536, 256):
             instance.append([pid, f"{pid}_{cnt}", title, tokenizer.decode(data)])
             cnt += 1
 

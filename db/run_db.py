@@ -3,6 +3,7 @@ import subprocess
 import pandas as pd
 
 from torch import Tensor
+from typing import List, Dict
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from sentence_transformers import SentenceTransformer
@@ -50,7 +51,7 @@ def encode_docs(df: pd.DataFrame, encoder: SentenceTransformer) -> pd.DataFrame:
     return df
 
 
-def search_candidates(query: str, encoder: SentenceTransformer, es: Elasticsearch, top_k: int = 5, candidates: int = 500) -> None:
+def search_candidates(query: str, encoder: SentenceTransformer, es: Elasticsearch, top_k: int = 5, candidates: int = 500) -> List[Dict]:
     """ function for semantic searching with input queries, finding best matched candidates in elastic search engine
 
     Args:
@@ -97,7 +98,7 @@ def insert_doc_embedding(df: pd.DataFrame, encoder: SentenceTransformer, es: Ela
     records = df.to_dict(orient='records')
     try:
         for record in records:
-            es.index(index="document_embedding", doc=record, id=record['doc_id'])
+            es.index(index="document_embedding", document=record, id=record['doc_id'])
 
         print("Document Embedding Inserted Successfully")
 

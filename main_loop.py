@@ -63,11 +63,11 @@ def main() -> None:
     os_type = platform.system()
 
     es = run_engine(url=get_db_url(), auth=get_db_auth(os_type), cert=get_db_cert(os_type))
-    create_index(es)
+    # create_index(es)
 
     encoder = get_encoder()
     df = build_doc_embedding_db(
-        load_all_types_dataset('./dataset_class/arxiv_qa/train_paper_meta_db.csv')
+        load_all_types_dataset('./dataset_class/arxiv_qa/train_paper_meta_db.csv')[3000:]
     )
 
     insert_doc_embedding(
@@ -77,11 +77,16 @@ def main() -> None:
     )
 
     query = "What is the self-attention mechanism in transformer?"
-    search_candidates(
+    result = search_candidates(
         query=query,
         encoder=encoder,
         es=es
     )
+
+    for res in result:
+        print(res)
+        print()
+
     return
 
 
@@ -91,5 +96,4 @@ if __name__ == '__main__':
     # parser.add_argument("train_type", type=str, help="Train Type Selection")
     # parser.add_argument("model_config", type=str, help="Model config Selection")
     # args = parser.parse_args()
-
     main()
