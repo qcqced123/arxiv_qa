@@ -120,7 +120,7 @@ class AbstractTask:
 
         elif self.cfg.hub == 'huggingface':
             config = AutoConfig.from_pretrained(self.cfg.model_name)
-            model = AutoModel.from_pretrained(
+            model = AutoModelForCausalLM.from_pretrained(
                 self.cfg.model_name,
                 config=config,
                 quantization_config=bit_config

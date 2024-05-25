@@ -8,7 +8,6 @@ from configuration import CFG
 
 
 class CLMCollator(WholeWordMaskingCollator):
-
     def __init__(self, cfg: CFG) -> None:
         super(CLMCollator, self).__init__(cfg=cfg)
 
@@ -51,8 +50,7 @@ class CLMCollator(WholeWordMaskingCollator):
 
 
 class CLMHead(nn.Module):
-    """
-    Custom Casual Language Model Head for CLM Task, which is used for pre-training Auto-Regressive Model (AR)
+    """ Custom Casual Language Model Head for CLM Task, which is used for pre-training Auto-Regressive Model (AR)
     CLM decoder does not use bias term, so set nn.Linear bias options as False
     For Decoder, Such as GPT2, GPTNeo, ...
 

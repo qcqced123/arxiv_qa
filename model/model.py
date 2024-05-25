@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import model.pooling as pooling
 
 from torch import Tensor
@@ -56,7 +55,7 @@ class CasualLanguageModel(nn.Module, AbstractTask):
     like as GPT, T5, llama ... etc
 
     Also, you can use this task module for text generation,
-    text summarization with generation ... any other task ,which is needed to generate text from prompt sentence
+    text summarization with generation ... any other task ,which is needed to generate text from prompt sentences
 
     Notes:
         L = L_CLM (pure language modeling)
@@ -86,6 +85,7 @@ class CasualLanguageModel(nn.Module, AbstractTask):
 
         self._init_weights(self.lm_head)
         if self.cfg.load_pretrained:
+            weights = torch.load(cfg.checkpoint_dir + cfg.state_dict),
             self.model.load_state_dict(
                 torch.load(cfg.checkpoint_dir + cfg.state_dict),
                 strict=True
@@ -105,7 +105,7 @@ class CasualLanguageModel(nn.Module, AbstractTask):
             last_hidden_states = self.feature(inputs).last_hidden_state
         else:
             last_hidden_states, _ = self.feature(inputs)
-        logit = self.lm_head(last_hidden_states)
+        logit = self.lm_head(last_hidden_states)  # 여기도 바꿔야겠네
         return logit
 
 

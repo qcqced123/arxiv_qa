@@ -11,16 +11,16 @@ import trainer.loss as loss
 import trainer.metric as metric
 import dataset_class.dataclass as dataset_class
 
+from torch import Tensor
 from numpy import ndarray
+from tqdm.auto import tqdm
 from torch.utils.data import DataLoader
 from torch.optim.swa_utils import AveragedModel
-from tqdm.auto import tqdm
-from torch import Tensor
 from typing import Tuple, Any, Union, List, Callable, Dict
 
 from configuration import CFG
 from model import model as task
-from model import mlm, clm
+from model import mlm, clm, rtd, sbo
 from dataset_class.preprocessing import load_all_types_dataset
 from trainer.trainer_utils import get_optimizer_grouped_parameters, get_scheduler
 from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler
@@ -484,10 +484,30 @@ class TextGenerationTuner(PreTrainTuner):
         """ baseline generate function for text generation task """
         pass
 
-    def train_val_fn(self):
+    def train_val_fn(
+        self,
+        loader_train,
+        model: nn.Module,
+        criterion: nn.Module,
+        optimizer,
+        scheduler,
+        loader_valid,
+        val_criterion: nn.Module,
+        val_metric_list: List[Callable],
+        val_score_max: float,
+        val_score_max_2: float,
+        epoch: int,
+        awp: nn.Module = None,
+        swa_model: nn.Module = None,
+        swa_start: int = None,
+        swa_scheduler=None
+    ):
         pass
 
     def valid_fn(self):
+        pass
+
+    def inference(self):
         pass
 
 
