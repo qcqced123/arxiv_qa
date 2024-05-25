@@ -150,20 +150,9 @@ class CFG:
     max_span_length = 10
     is_concatenate = True
 
-    # 4) Distillation Knowledge Option
-    teacher_num_layers = 12
-    student_num_layers = 6
-    is_teacher_resume = False
-    is_student_resume = False
-    teacher_load_pretrained = False
-    student_load_pretrained = False
-    temperature = 5
-    alpha_distillation = 0.5
-    alpha_student = 0.5
-    alpha_cosine = 0.5
-
     """ Fine-Tuning Option """
     use_pretrained = False
+    generate_mode = False
     hub = "huggingface"
     lora = True
     qlora = False
@@ -178,3 +167,15 @@ class CFG:
     virtual_token_dim = 768
     prompt_encoder_hidden_size = 768
 
+    """ Generate Option """
+    strategy: str = 'beam'
+    penalty_alpha: float = 0.6 if strategy == 'contrastive' else None
+    num_beams: int = 4 if strategy == 'beam' else None
+    temperature: float = None,
+    top_k: int = None,
+    top_p: float = None,
+    repetition_penalty: float = None,
+    length_penalty: float = None,
+    no_repeat_ngram_size: int = None,
+    do_sample: bool = False,
+    use_cache: bool = True,

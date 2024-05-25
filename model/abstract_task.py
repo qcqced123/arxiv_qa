@@ -86,10 +86,13 @@ class AbstractTask:
         model = getattr(module, self.cfg.module_name)(self.cfg, num_layers)  # get instance in runtime
         return model
 
-    def select_pt_model(self) -> Dict:
+    def select_pt_model(self, generate_mode: bool = False) -> Dict:
         """ Selects architecture for each task (fine-tune),
         you can easily select your model for experiment from json config files
         or choose the pretrained weight hub (own your pretrain, huggingface ... etc)
+
+        Args:
+            generate_mode: The flag for generating model in runtime, default is False (bool)
 
         Var:
             self.hub: hub name for choosing pretrained weights, now you can ONLY select huggingface hub,
@@ -121,6 +124,10 @@ class AbstractTask:
         elif self.cfg.hub == 'huggingface':
             config = AutoConfig.from_pretrained(self.cfg.model_name)
             model = AutoModelForCausalLM.from_pretrained(
+                self.cfg.model_name,
+                config=config,
+                quantization_config=bit_config
+            ) if generate_mode else AutoModel.from_pretrained(
                 self.cfg.model_name,
                 config=config,
                 quantization_config=bit_config

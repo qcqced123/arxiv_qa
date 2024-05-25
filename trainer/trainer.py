@@ -1,4 +1,3 @@
-import gc
 import wandb
 import numpy as np
 import transformers
@@ -18,11 +17,13 @@ from torch.utils.data import DataLoader
 from torch.optim.swa_utils import AveragedModel
 from typing import Tuple, Any, Union, List, Callable, Dict
 
+from elasticsearch import Elasticsearch
+
 from configuration import CFG
 from model import model as task
-from model import mlm, clm, rtd, sbo
+from model import mlm, clm, sbo
 from dataset_class.preprocessing import load_all_types_dataset
-from trainer.trainer_utils import get_optimizer_grouped_parameters, get_scheduler
+from trainer.trainer_utils import load_pretrained_weights, get_optimizer_grouped_parameters, get_scheduler
 from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler
 
 
@@ -471,18 +472,26 @@ class CLMTuner(PreTrainTuner):
 class TextGenerationTuner(PreTrainTuner):
     """ Fine-tune class for Text Generation, Summarization
     """
-    def __init__(self, cfg: CFG, generator: torch.Generator) -> None:
+    def __init__(self, cfg: CFG, generator: torch.Generator, es: Elasticsearch = None) -> None:
         super(TextGenerationTuner, self).__init__(cfg=cfg, generator=generator)
+        self.es = es
 
     def make_batch(self):
+        """ for rag-token generation, you need to use different dataloader """
         pass
 
-    def model_setting(self):
-        pass
+    def model_setting(self, len_train: int = None):
+        """ Function for init backbone's configuration & train utils setting,
+        The design is inspired by the Builder Pattern
+        """
+        model = getattr(task, self.cfg.task)(self.cfg)
 
-    def generate(self):
-        """ baseline generate function for text generation task """
-        pass
+        # load checkpoint when you set 'resume' to True
+        if self.cfg.resume:
+            load_pretrained_weights(model, self.cfg)
+
+        model.to(self.cfg.device)
+        return model
 
     def train_val_fn(
         self,
@@ -504,11 +513,78 @@ class TextGenerationTuner(PreTrainTuner):
     ):
         pass
 
-    def valid_fn(self):
-        pass
+    def valid_fn(
+        self,
+        loader_valid,
+        model: nn.Module,
+        val_criterion: nn.Module,
+        val_metric_list: List[Callable]
+    ) -> Tuple[np.ndarray, List]:
+        """ function for validation loop
+        """
 
-    def inference(self):
-        pass
+    @staticmethod
+    def log_probs_from_logit(logits, labels):
+        """ function for returning single-token sequence """
+        logp = F.log_softmax(logits, dim=-1)
+        logp_label = torch.gather(logp, 2, labels.unsqueeze(2)).squeeze(-1)
+        return logp_label
+
+    def sequence_probs(self, model, labels, input_len: int = 0):
+        """
+        Args:
+            model: nn.Module, PLM for generating text
+            labels: torch.Tensor, convert input string into pytorch tensor
+            input_len: int, length of each batch sequence
+        """
+        with torch.no_grad():
+            output = model(labels)
+            log_probs = self.log_probs_from_logit(output.logits[:, :-1, :], labels[:, 1:])  # rotate
+            seq_log_prob = torch.sum(log_probs[:, input_len:])  # except last index token for calculating prob
+
+        return seq_log_prob.cpu().numpy()
+
+    def inference(
+        self,
+        model: nn.Module,
+        query: str,
+        context: str,
+        max_length: int,
+        strategy: str = None,
+        penalty_alpha: float = None,
+        num_beams: int = None,
+        temperature: float = None,
+        top_k: int = None,
+        top_p: float = None,
+        repetition_penalty: float = None,
+        length_penalty: float = None,
+        no_repeat_ngram_size: int = None,
+        do_sample: bool = None,
+        use_cache: bool = True,
+    ) -> List[Dict]:
+        prompt = f"[query]\n{query}\n\n[context]\n{context}"
+        input_ids = self.tokenizer(prompt, max_length=max_length, return_tensors='pt')['input_ids'].to(self.cfg.device)
+        output = model.model.generate(
+            input_ids=input_ids,
+            max_length=max_length,
+            penalty_alpha=penalty_alpha,
+            num_beams=num_beams,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            repetition_penalty=repetition_penalty,
+            length_penalty=length_penalty,
+            no_repeat_ngram_size=no_repeat_ngram_size,
+            do_sample=do_sample,
+            use_cache=use_cache,
+        )
+        # logp = self.sequence_probs(
+        #     model=model,
+        #     labels=output,
+        #     input_len=len(input_ids[0])
+        # )
+        # print(f"Decoding Probability: {logp}")
+        return self.tokenizer.decode(output[0], skip_special_tokens=True)
 
 
 class SequenceClassificationTuner:

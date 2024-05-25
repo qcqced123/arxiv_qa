@@ -10,6 +10,25 @@ from typing import List, Tuple, Dict, Type, Union
 from utils.helper import seed_worker
 
 
+def load_pretrained_weights(model: nn.Module, cfg: configuration.CFG) -> nn.Module:
+    """ Load pretrained weights from checkpoint directory
+
+    Args:
+        model: model instance from customizing model
+        cfg: configuration.CFG
+
+    """
+    plm_weight = torch.load(cfg.checkpoint_dir)
+    if (cfg.lora or cfg.qlora) and cfg.generate_mode:
+        lm_weight = model.model.base_model.model.state_dict()
+        for lm_key, plm_key in zip(list(lm_weight.keys()), list(plm_weight.keys())):
+            lm_weight[lm_key] = plm_weight[plm_key].clone()
+
+        model.model.base_model.model.load_state_dict(lm_weight)
+
+    return model
+
+
 def get_model_layers(model: nn.Module) -> List[nn.Module]:
     """ Get specific layers of each architecture of model
 

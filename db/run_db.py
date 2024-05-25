@@ -71,12 +71,12 @@ def search_candidates(query: str, encoder: SentenceTransformer, es: Elasticsearc
     }
 
     return_data = ["paper_id", "doc_id", "title", "doc"]
-    candidates = es.knn_search(
+    candidate = es.knn_search(
         index="document_embedding",
         knn=query,
         source=return_data
     )
-    return candidates['hits']['hits']
+    return candidate['hits']['hits']
 
 
 def create_index(es: Elasticsearch) -> None:

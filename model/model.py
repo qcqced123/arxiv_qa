@@ -3,7 +3,7 @@ import torch.nn as nn
 import model.pooling as pooling
 
 from torch import Tensor
-from typing import List, Tuple, Dict
+from typing import List, Dict
 
 from model.mlm import MLMHead
 from model.clm import CLMHead
@@ -73,23 +73,19 @@ class CasualLanguageModel(nn.Module, AbstractTask):
 
         # select model from local non-trained model or pretrained-model from huggingface hub
         if self.cfg.use_pretrained:
-            self.components = self.select_pt_model()
+            self.components = self.select_pt_model(generate_mode=self.cfg.generate_mode)
             self.auto_cfg = self.components['plm_config']
             self.model = self.components['plm']
-            self.lm_head = CLMHead(cfg, self.auto_cfg)
+            self.lm_head = CLMHead(cfg, self.auto_cfg) if not self.cfg.generate_mode else None  # for generation mode
 
         else:
             self.model = self.select_model(cfg.num_layers)
             self.lm_head = CLMHead(cfg)
             self._init_weights(self.model)
 
-        self._init_weights(self.lm_head)
-        if self.cfg.load_pretrained:
-            weights = torch.load(cfg.checkpoint_dir + cfg.state_dict),
-            self.model.load_state_dict(
-                torch.load(cfg.checkpoint_dir + cfg.state_dict),
-                strict=True
-            )
+        if self.lm_head is not None:
+            self._init_weights(self.lm_head)
+
         if self.cfg.gradient_checkpoint:
             self.model.gradient_checkpointing_enable()
 
@@ -101,11 +97,15 @@ class CasualLanguageModel(nn.Module, AbstractTask):
         return outputs
 
     def forward(self, inputs: Dict) -> List[Tensor]:
+        last_hidden_states, logit = None, None
         if self.cfg.use_pretrained:
-            last_hidden_states = self.feature(inputs).last_hidden_state
+            if self.cfg.generate_mode:  # for generation mode or pretraining mode with AutoModelForCausalLM
+                _, logit, _, last_hidden_states, _ = self.model(input_ids=inputs['input_ids'], attention_mask=inputs['attention_mask'])
+            else:  # for pretraining mode with AutoModel
+                last_hidden_states = self.feature(inputs).last_hidden_state
         else:
             last_hidden_states, _ = self.feature(inputs)
-        logit = self.lm_head(last_hidden_states)  # 여기도 바꿔야겠네
+        logit = self.lm_head(last_hidden_states) if self.lm_head is not None else logit
         return logit
 
 

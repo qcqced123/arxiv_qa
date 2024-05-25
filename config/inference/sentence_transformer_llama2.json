@@ -9,12 +9,27 @@
         "dataset": "PretrainDataset",
         "model_name": "meta-llama/Llama-2-7b-hf",
         "tokenizer_name": "meta-llama/Llama-2-7b-hf",
-        "resume": false,
-        "checkpoint_dir": "./saved/"
+        "resume": true,
+        "checkpoint_dir": "./saved/arxiv_clm_4096_llama2_7b_hf_state_dict.pth"
+    },
+
+    "generate_options": {
+        "strategy": "beam",
+        "penalty_alpha": 0.6,
+        "num_beams": 2,
+        "temperature": 1.0,
+        "top_k": 50,
+        "top_p": 0.9,
+        "repetition_penalty": 1.0,
+        "length_penalty": 1.0,
+        "no_repeat_ngram_size": 0,
+        "do_sample": false,
+        "use_cache": true
     },
 
     "fine_tune_options": {
         "use_pretrained": true,
+        "generate_mode": true,
         "hub": "huggingface",
         "lora": false,
         "qlora": true,

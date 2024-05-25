@@ -4,7 +4,7 @@ import torch.nn as nn
 from torch.nn.utils.rnn import pad_sequence
 from torch import Tensor
 from typing import Dict, List, Tuple, Any
-from ..tuner.mlm import WholeWordMaskingCollator
+from model.mlm import WholeWordMaskingCollator
 from configuration import CFG
 
 """ Tokenizer Type for Span Boundary Objective Task

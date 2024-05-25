@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch import Tensor
 from typing import Iterable, Dict
-from experiment.losses.distance_metric import SelectDistances
+from trainer.distance_metric import SelectDistances
 
 
 class SmoothL1Loss(nn.Module):
