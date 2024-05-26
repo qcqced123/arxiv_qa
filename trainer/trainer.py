@@ -562,7 +562,10 @@ class TextGenerationTuner(PreTrainTuner):
         do_sample: bool = None,
         use_cache: bool = True,
     ) -> List[Dict]:
-        prompt = f"[query]\n{query}\n\n[context]\n{context}\n\n"
+        # prompt = f"[query]\n{query}\n\n[context]\n{context}\n\n"
+        # prompt = f"[context]\n{context}\n\n[query]\n{query}\n\n"
+        prompt = f"{context}"
+
         input_ids = self.tokenizer(prompt, max_length=max_length, return_tensors='pt')['input_ids'].to(self.cfg.device)
         output = model.model.generate(
             input_ids=input_ids,
