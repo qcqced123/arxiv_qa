@@ -6,15 +6,18 @@ import numpy as np
 import trainer.trainer as trainer
 
 from tqdm.auto import tqdm
+from elasticsearch import Elasticsearch
+
 from configuration import CFG
-from trainer.trainer_utils import get_name, EarlyStopping
 from utils.helper import class2dict
+from trainer.trainer import TextGenerationTuner
+from trainer.trainer_utils import get_name, EarlyStopping
 
 g = torch.Generator()
 g.manual_seed(CFG.seed)
 
 
-def train_loop(cfg: CFG, train_type: str, model_config: str) -> None:
+def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     """ Base Trainer Loop Function
 
     1) Initialize Trainer Object
@@ -23,7 +26,7 @@ def train_loop(cfg: CFG, train_type: str, model_config: str) -> None:
     4) Initialize Train, Validation Input Object
     5) Check if this train loop need to finish, by Early Stopping Object
     """
-    if train_type == 'pretrain':
+    if pipeline_type == 'pretrain':
         sharing_method = cfg.share_embed_method if (model_config in ['electra', 'deberta_v3']) else ''
         wandb.init(
             project=cfg.name,
@@ -33,7 +36,7 @@ def train_loop(cfg: CFG, train_type: str, model_config: str) -> None:
             job_type='train',
             entity="qcqced"
         )
-    elif train_type == 'fine_tune':
+    elif pipeline_type == 'fine_tune':
         wandb.init(
             project=cfg.name,
             name=f'{cfg.model_name}',
@@ -111,3 +114,34 @@ def train_loop(cfg: CFG, train_type: str, model_config: str) -> None:
                 wandb.log({'<epoch> Valid Loss': swa_loss})
 
     wandb.finish()
+
+
+def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearch) -> str:
+    answer = ''
+    tuner = TextGenerationTuner(
+        cfg=cfg,
+        generator=g,
+        es=es
+    )
+
+    generator, _ = tuner.model_setting()
+    answer = tuner.inference(
+        model=generator,
+        query=query,
+        context=context,
+        max_length=cfg.max_len,
+        strategy=cfg.strategy,
+        penalty_alpha=cfg.penalty_alpha,
+        num_beams=cfg.num_beams,
+        temperature=cfg.temperature,
+        top_k=cfg.top_k,
+        top_p=cfg.top_p,
+        repetition_penalty=cfg.repetition_penalty,
+        length_penalty=cfg.length_penalty,
+        do_sample=cfg.do_sample,
+        use_cache=cfg.use_cache
+    )
+    print(answer)
+
+    return answer
+

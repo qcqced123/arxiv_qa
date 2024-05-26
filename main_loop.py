@@ -11,7 +11,7 @@ from utils.util import sync_config
 from huggingface_hub import login
 
 from configuration import CFG
-from trainer.trainer import TextGenerationTuner
+from trainer.train_loop import train_loop, inference_loop
 from dataset_class.preprocessing import load_all_types_dataset
 from dataset_class.make_dataset import build_doc_embedding_db
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
@@ -49,7 +49,7 @@ def get_db_cert(os_type: str) -> str:
     return os.environ.get('MAC_CA_CERTS') if os_type == "Darwin" else os.environ.get('LINUX_CA_CERTS')
 
 
-def main(cfg: CFG, train_type: str, model_config: str) -> None:
+def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     """ main loop function for running the engine
 
     workflow:
@@ -66,7 +66,7 @@ def main(cfg: CFG, train_type: str, model_config: str) -> None:
         5) run the text generation tuner for generating the answer for the input query
     """
     login_to_huggingface()
-    config_path = f'config/{train_type}/{model_config}.json'
+    config_path = f'config/{pipeline_type}/{model_config}.json'
     sync_config(cfg, OmegaConf.load(config_path))
 
     os_type = platform.system()
@@ -78,9 +78,8 @@ def main(cfg: CFG, train_type: str, model_config: str) -> None:
         print("Error in creating index:", e)
         pass
 
-    retriever = get_encoder()
-
-    if train_type == "train":
+    if pipeline_type == "pretrain":
+        retriever = get_encoder()
         df = build_doc_embedding_db(
             load_all_types_dataset('./dataset_class/arxiv_qa/train_paper_meta_db.csv')
         )
@@ -91,6 +90,7 @@ def main(cfg: CFG, train_type: str, model_config: str) -> None:
             es=es
         )
 
+    # how to abstract this line
     query = "What is the self-attention mechanism in transformer?"
     result = search_candidates(
         query=query,
@@ -107,36 +107,22 @@ def main(cfg: CFG, train_type: str, model_config: str) -> None:
         if i+1 != len(result):
             context += "\n\n"
 
-    tuner = TextGenerationTuner(
-        cfg=cfg,
-        generator=g,
-        es=es
-    )
-    generator = tuner.model_setting()
-    answer = tuner.inference(
-        model=generator,
-        query=query,
-        context=context,
-        max_length=cfg.max_len,
-        strategy=cfg.strategy,
-        penalty_alpha=cfg.penalty_alpha,
-        num_beams=cfg.num_beams,
-        temperature=cfg.temperature,
-        top_k=cfg.top_k,
-        top_p=cfg.top_p,
-        repetition_penalty=cfg.repetition_penalty,
-        length_penalty=cfg.length_penalty,
-        do_sample=cfg.do_sample,
-        use_cache=cfg.use_cache
-    )
-    print(answer)
+    if pipeline_type == "pretrain":
+        pass
+
+    elif pipeline_type == "fine_tune":
+        train_loop()
+
+    elif pipeline_type == "inference":
+        answer = inference_loop(cfg, pipeline_type, es)
+
     return
 
 
 if __name__ == '__main__':
     config = CFG
     parser = argparse.ArgumentParser(description="Train Script")
-    parser.add_argument("train_type", type=str, help="Train Type Selection")  # train, inference
+    parser.add_argument("pipeline_type", type=str, help="Train Type Selection")  # train, inference
     parser.add_argument("model_config", type=str, help="Model config Selection")  # name of retriever-generator
     args = parser.parse_args()
 

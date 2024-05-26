@@ -1,6 +1,6 @@
 {
     "pipeline_setting": {
-        "type": "train",
+        "pipeline_type": "train",
         "name": "ArxivRAGModeling",
         "trainer": "TextGenerationTuner",
         "loop": "train_loop",

@@ -469,12 +469,16 @@ class CLMTuner(PreTrainTuner):
         return valid_losses.avg
 
 
-class TextGenerationTuner(PreTrainTuner):
+class TextGenerationTuner:
     """ Fine-tune class for Text Generation, Summarization
     """
     def __init__(self, cfg: CFG, generator: torch.Generator, es: Elasticsearch = None) -> None:
-        super(TextGenerationTuner, self).__init__(cfg=cfg, generator=generator)
         self.es = es
+        self.cfg = cfg
+        self.generator = generator
+        self.metric_list = self.cfg.metrics
+        self.tokenizer = self.cfg.tokenizer
+        self.model_name = self.cfg.module_name
 
     def make_batch(self):
         """ search the top-k nearest document in doc embedding db for making the input prompt of generator
@@ -494,31 +498,66 @@ class TextGenerationTuner(PreTrainTuner):
 
         model.to(self.cfg.device)
 
-        return model
+        criterion, val_criterion, val_metric_list = None, None, None
+        optimizer, lr_scheduler = None, None
+        swa_model, swa_scheduler, awp = None, None, None
+
+        if self.cfg.pipeline_type == 'train':
+            criterion = getattr(loss, self.cfg.loss_fn)(self.cfg.reduction)
+            val_criterion = getattr(loss, self.cfg.val_loss_fn)(self.cfg.reduction)
+            val_metric_list = [getattr(metric, f'{metrics}') for metrics in self.metric_list]
+
+            optimizer = getattr(transformers, self.cfg.optimizer)(
+                params=model.parameters(),
+                lr=self.cfg.lr,
+                betas=self.cfg.betas,
+                eps=self.cfg.adam_epsilon,
+                weight_decay=self.cfg.weight_decay,
+                correct_bias=not self.cfg.use_bertadam
+            )
+            lr_scheduler = get_scheduler(self.cfg, optimizer, len_train)
+
+            # init SWA Module
+            if self.cfg.swa:
+                swa_model = AveragedModel(model)
+                swa_scheduler = get_swa_scheduler(self.cfg, optimizer)
+
+            # init AWP Module
+
+            if self.cfg.awp:
+                awp = AWP(
+                    model,
+                    criterion,
+                    optimizer,
+                    self.cfg.awp,
+                    adv_lr=self.cfg.awp_lr,
+                    adv_eps=self.cfg.awp_eps
+                )
+        return model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
 
     def train_val_fn(
         self,
-        loader_train,
         model: nn.Module,
         criterion: nn.Module,
         optimizer,
         scheduler,
-        loader_valid,
         val_criterion: nn.Module,
         val_metric_list: List[Callable],
         val_score_max: float,
         val_score_max_2: float,
-        epoch: int,
         awp: nn.Module = None,
         swa_model: nn.Module = None,
         swa_start: int = None,
         swa_scheduler=None
     ):
-        pass
+        losses = AverageMeter()
+        scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
+
+        model.train()
+
 
     def valid_fn(
         self,
-        loader_valid,
         model: nn.Module,
         val_criterion: nn.Module,
         val_metric_list: List[Callable]

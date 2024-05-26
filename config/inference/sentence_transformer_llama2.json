@@ -1,6 +1,6 @@
 {
     "pipeline_setting": {
-        "type": "inference",
+        "pipeline_type": "inference",
         "task": "CasualLanguageModel",
         "model_name": "meta-llama/Llama-2-7b-hf",
         "tokenizer_name": "meta-llama/Llama-2-7b-hf",
