@@ -612,7 +612,7 @@ class TextGenerationTuner:
             self.tokenizer()
 
             with torch.cuda.amp.autocast(enabled=self.cfg.amp_scaler):
-
+                pass
 
     def valid_fn(
         self,
@@ -650,6 +650,7 @@ class TextGenerationTuner:
         model: nn.Module,
         query: str,
         context: str,
+        max_new_tokens: int,
         max_length: int,
         strategy: str = None,
         penalty_alpha: float = None,
@@ -667,10 +668,12 @@ class TextGenerationTuner:
         # prompt = f"[query]\n{query}\n\n[context]\n{context}\n\n"
         # prompt = f"{context}"
         prompt = f"[context]\n{context}\n\n[query]\n{query}\n\n"
+        # prompt = f"{query}"
 
-        input_ids = self.tokenizer(prompt, max_length=max_length, return_tensors='pt')['input_ids'].to(self.cfg.device)
+        input_ids = self.tokenizer(prompt, return_tensors='pt')['input_ids'].to(self.cfg.device)
         output = model.model.generate(
             input_ids=input_ids,
+            max_new_tokens=max_new_tokens,
             max_length=max_length,
             penalty_alpha=penalty_alpha,
             num_beams=num_beams,
@@ -683,12 +686,12 @@ class TextGenerationTuner:
             do_sample=do_sample,
             use_cache=use_cache,
         )
-        logp = self.sequence_probs(
-            model=model,
-            labels=output,
-            input_len=len(input_ids[0])
-        )
-        print(f"Decoding Probability: {logp}")
+        # logp = self.sequence_probs(
+        #     model=model,
+        #     labels=output,
+        #     input_len=len(input_ids[0])
+        # )
+        # print(f"Decoding Probability: {logp}")
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
 
 

@@ -10,15 +10,16 @@
     },
 
     "generate_options": {
+        "max_new_tokens": 512,
         "strategy": "beam",
         "penalty_alpha": 0.6,
         "num_beams": 2,
         "temperature": 1.0,
         "top_k": 50,
-        "top_p": 0.9,
-        "repetition_penalty": 1.0,
+        "top_p": 1,
+        "repetition_penalty": 2.0,
         "length_penalty": 1.0,
-        "no_repeat_ngram_size": 0,
+        "no_repeat_ngram_size": 2,
         "do_sample": false,
         "use_cache": true
     },

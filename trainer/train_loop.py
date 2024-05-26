@@ -116,7 +116,10 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearc
 
 
 def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearch) -> List[str]:
-    queries = "What is the self-attention mechanism in transformer?"  # ASAP, this line will be changed to user's input q
+    queries = [
+        "What is the self-attention mechanism in transformer?",
+        "What is the Retrieval Augmented Generation (RAG) model?",
+    ]  # ASAP, this line will be changed to user's input q
     retriever = get_encoder(cfg.retriever)
     tuner = TextGenerationTuner(
         cfg=cfg,
@@ -124,7 +127,7 @@ def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elastics
         is_train=False,
         es=es
     )
-    generator, _ = tuner.model_setting()
+    _, generator, *_ = tuner.model_setting()
 
     answers = []
     for query in queries:
@@ -147,6 +150,7 @@ def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elastics
             model=generator,
             query=query,
             context=context,
+            max_new_tokens=cfg.max_new_tokens,
             max_length=cfg.max_len,
             strategy=cfg.strategy,
             penalty_alpha=cfg.penalty_alpha,

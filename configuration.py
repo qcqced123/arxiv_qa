@@ -170,6 +170,7 @@ class CFG:
     prompt_encoder_hidden_size = 768
 
     """ Generate Option """
+    max_new_tokens = 512
     strategy: str = 'beam'
     penalty_alpha: float = 0.6 if strategy == 'contrastive' else None
     num_beams: int = 4 if strategy == 'beam' else None

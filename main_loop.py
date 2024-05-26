@@ -94,7 +94,8 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         pass
 
     elif pipeline_type == "fine_tune":
-        train_loop()
+        # train_loop()
+        pass
 
     elif pipeline_type == "inference":
         answers = inference_loop(
@@ -115,4 +116,4 @@ if __name__ == '__main__':
     parser.add_argument("model_config", type=str, help="Model config Selection")  # name of retriever-generator
     args = parser.parse_args()
 
-    main(config, args.train_type, args.model_config)
+    main(config, args.pipeline_type, args.model_config)
