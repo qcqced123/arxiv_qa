@@ -28,6 +28,7 @@ class CFG:
     dataset = 'MLMDataset'  # dataset_class.dataclass.py -> MLMDataset, CLMDataset ... etc
     arch_name = 'attention'
     model_name = 'deberta'
+    retriever = 'sentence-transformers/all-MiniLM-L6-v2'
     module_name = 'BERT'
     tokenizer_name = 'microsoft/deberta-v3-large'  # later, remove this line
     tokenizer = None
@@ -114,6 +115,7 @@ class CFG:
     hidden_dropout_prob = 0.1
     init_weight = 'orthogonal'  # options: normal, xavier_uniform, xavier_normal, kaiming_uniform, kaiming_normal
     initializer_range = 0.02
+    patience = 3
     stop_mode = 'min'
     freeze = False
     num_freeze = 2

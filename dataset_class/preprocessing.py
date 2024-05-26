@@ -41,7 +41,7 @@ def hf_split_dataset(cfg: configuration.CFG, dataset: Dataset) -> Tuple[Dataset,
 
 
 def dataset_split(cfg: configuration.CFG, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """ Split dataset from pandas.DataFrame with sklearn.train_test_split
+    """ Split dataset from pandas.DataFrame with     sklearn.train_test_split
 
     Args:
         cfg: configuration.CFG, needed to load split ratio, seed value

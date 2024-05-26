@@ -22,9 +22,11 @@ from elasticsearch import Elasticsearch
 from configuration import CFG
 from model import model as task
 from model import mlm, clm, sbo
-from dataset_class.preprocessing import load_all_types_dataset
-from trainer.trainer_utils import load_pretrained_weights, get_optimizer_grouped_parameters, get_scheduler
+
+from db.run_db import get_encoder, search_candidates
+from dataset_class.preprocessing import dataset_split, load_all_types_dataset
 from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler
+from trainer.trainer_utils import load_pretrained_weights, get_optimizer_grouped_parameters, get_scheduler
 
 
 class PreTrainTuner:
@@ -471,11 +473,15 @@ class CLMTuner(PreTrainTuner):
 
 class TextGenerationTuner:
     """ Fine-tune class for Text Generation, Summarization
+
+    Args:
+
     """
-    def __init__(self, cfg: CFG, generator: torch.Generator, es: Elasticsearch = None) -> None:
+    def __init__(self, cfg: CFG, generator: torch.Generator, is_train: bool = True, es: Elasticsearch = None) -> None:
         self.es = es
         self.cfg = cfg
         self.generator = generator
+        self.is_train = is_train
         self.metric_list = self.cfg.metrics
         self.tokenizer = self.cfg.tokenizer
         self.model_name = self.cfg.module_name
@@ -484,12 +490,36 @@ class TextGenerationTuner:
         """ search the top-k nearest document in doc embedding db for making the input prompt of generator
         by using retriever and query from the generative Question and Answering DataFrame
         """
-        pass
+        df = load_all_types_dataset("./dataset_class/arxiv_qa/train_paper_meta_db.csv") if self.is_train else None
+        train, valid = dataset_split(self.cfg, df)
+
+        train_dataset = getattr(dataset_class, self.cfg.dataset)(train)
+        valid_dataset = getattr(dataset_class, self.cfg.dataset)(valid, is_valid=True)
+
+        collate_fn = getattr(clm, 'CLMCollator')(self.cfg)
+        loader_train = get_dataloader(
+            cfg=self.cfg,
+            dataset=train_dataset,
+            collate_fn=collate_fn,
+            generator=self.generator
+        )
+        loader_valid = get_dataloader(
+            cfg=self.cfg,
+            dataset=valid_dataset,
+            collate_fn=collate_fn,
+            generator=self.generator,
+            shuffle=False,
+            drop_last=False
+        )
+        return loader_train, loader_valid, len(train['input_ids'])
 
     def model_setting(self, len_train: int = None):
         """ Function for init backbone's configuration & train utils setting,
         The design is inspired by the Builder Pattern
         """
+        retriever = get_encoder(self.cfg.retriever)
+        retriever.to(self.cfg.device)
+
         model = getattr(task, self.cfg.task)(self.cfg)
 
         # load checkpoint when you set 'resume' to True
@@ -508,7 +538,7 @@ class TextGenerationTuner:
             val_metric_list = [getattr(metric, f'{metrics}') for metrics in self.metric_list]
 
             optimizer = getattr(transformers, self.cfg.optimizer)(
-                params=model.parameters(),
+                params=retriever.parameters() + model.parameters(),
                 lr=self.cfg.lr,
                 betas=self.cfg.betas,
                 eps=self.cfg.adam_epsilon,
@@ -533,18 +563,22 @@ class TextGenerationTuner:
                     adv_lr=self.cfg.awp_lr,
                     adv_eps=self.cfg.awp_eps
                 )
-        return model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
+        return retriever, model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
 
     def train_val_fn(
         self,
+        loader_train,
+        retriever: nn.Module,
         model: nn.Module,
         criterion: nn.Module,
         optimizer,
         scheduler,
+        loader_valid,
         val_criterion: nn.Module,
         val_metric_list: List[Callable],
         val_score_max: float,
         val_score_max_2: float,
+        epoch: int,
         awp: nn.Module = None,
         swa_model: nn.Module = None,
         swa_start: int = None,
@@ -554,6 +588,30 @@ class TextGenerationTuner:
         scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
 
         model.train()
+        for step, batch in enumerate(tqdm(loader_train)):
+            optimizer.zero_grad(set_to_none=True)
+            inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k != 'labels'}
+            labels = batch['labels'].to(self.cfg.device, non_blocking=True)
+            batch_size = labels.size(0)
+
+            result = search_candidates(
+                query=inputs['input_ids'],
+                encoder=retriever,
+                es=self.es,
+                top_k=3
+            )
+
+            context = ''
+            for i, res in enumerate(result):
+                curr = f"Title {i + 1}: " + res['_source']['title'] + "\n"
+                curr += res['_source']['doc']
+                context += curr
+                if i + 1 != len(result):
+                    context += "\n\n"
+
+            self.tokenizer()
+
+            with torch.cuda.amp.autocast(enabled=self.cfg.amp_scaler):
 
 
     def valid_fn(
@@ -607,8 +665,8 @@ class TextGenerationTuner:
     ) -> List[Dict]:
         """ method for making the answer from the given prompt (context + query) """
         # prompt = f"[query]\n{query}\n\n[context]\n{context}\n\n"
-        # prompt = f"[context]\n{context}\n\n[query]\n{query}\n\n"
-        prompt = f"{context}"
+        # prompt = f"{context}"
+        prompt = f"[context]\n{context}\n\n[query]\n{query}\n\n"
 
         input_ids = self.tokenizer(prompt, max_length=max_length, return_tensors='pt')['input_ids'].to(self.cfg.device)
         output = model.model.generate(

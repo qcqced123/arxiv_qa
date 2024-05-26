@@ -90,23 +90,6 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             es=es
         )
 
-    # how to abstract this line
-    query = "What is the self-attention mechanism in transformer?"
-    result = search_candidates(
-        query=query,
-        encoder=retriever,
-        es=es,
-        top_k=2,
-    )
-
-    context = ''
-    for i, res in enumerate(result):
-        curr = f"Title {i+1}: " + res['_source']['title'] + "\n"
-        curr += res['_source']['doc']
-        context += curr
-        if i+1 != len(result):
-            context += "\n\n"
-
     if pipeline_type == "pretrain":
         pass
 
@@ -114,8 +97,14 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         train_loop()
 
     elif pipeline_type == "inference":
-        answer = inference_loop(cfg, pipeline_type, es)
-
+        answers = inference_loop(
+            cfg=cfg,
+            pipeline_type=pipeline_type,
+            model_config=model_config,
+            es=es
+        )
+        for i, answer in enumerate(answers):
+            print(f"{i+1}-th question's answer is: \n\n {answer}")
     return
 
 

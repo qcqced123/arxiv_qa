@@ -2,6 +2,7 @@
     "pipeline_setting": {
         "pipeline_type": "inference",
         "task": "CasualLanguageModel",
+        "retriever": "sentence-transformers/all-MiniLM-L6-v2",
         "model_name": "meta-llama/Llama-2-7b-hf",
         "tokenizer_name": "meta-llama/Llama-2-7b-hf",
         "resume": true,

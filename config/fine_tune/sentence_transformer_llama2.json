@@ -6,7 +6,8 @@
         "loop": "train_loop",
         "task": "CasualLanguageModel",
         "domain": "commerce/amazon",
-        "dataset": "PretrainDataset",
+        "dataset": "TextGenerationDataset",
+        "retriever": "sentence-transformers/all-MiniLM-L6-v2",
         "model_name": "meta-llama/Llama-2-7b-hf",
         "tokenizer_name": "meta-llama/Llama-2-7b-hf",
         "resume": true,
@@ -53,6 +54,7 @@
     "data_settings": {
         "datafolder": "arxiv_qa",
         "batching": "random",
+        "split_ratio": 0.1,
         "epochs": 1,
         "batch_size": 8,
         "val_batch_size": 8,
@@ -105,6 +107,7 @@
 
     "model_utils": {
         "stop_mode": "min",
+        "patience": 3,
         "freeze": false,
         "num_freeze": -1,
         "reinit": false,

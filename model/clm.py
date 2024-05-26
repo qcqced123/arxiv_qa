@@ -1,10 +1,12 @@
 import torch
 import torch.nn as nn
-from torch.nn.utils.rnn import pad_sequence
+
 from torch import Tensor
+from torch.nn.utils.rnn import pad_sequence
 from typing import Dict, List
-from .mlm import WholeWordMaskingCollator
+
 from configuration import CFG
+from .mlm import WholeWordMaskingCollator
 
 
 class CLMCollator(WholeWordMaskingCollator):
