@@ -477,7 +477,9 @@ class TextGenerationTuner(PreTrainTuner):
         self.es = es
 
     def make_batch(self):
-        """ for rag-token generation, you need to use different dataloader """
+        """ search the top-k nearest document in doc embedding db for making the input prompt of generator
+        by using retriever and query from the generative Question and Answering DataFrame
+        """
         pass
 
     def model_setting(self, len_train: int = None):
@@ -491,6 +493,7 @@ class TextGenerationTuner(PreTrainTuner):
             load_pretrained_weights(model, self.cfg)
 
         model.to(self.cfg.device)
+
         return model
 
     def train_val_fn(
@@ -530,6 +533,7 @@ class TextGenerationTuner(PreTrainTuner):
         logp_label = torch.gather(logp, 2, labels.unsqueeze(2)).squeeze(-1)
         return logp_label
 
+    @torch.no_grad()
     def sequence_probs(self, model, labels, input_len: int = 0):
         """
         Args:
@@ -537,13 +541,13 @@ class TextGenerationTuner(PreTrainTuner):
             labels: torch.Tensor, convert input string into pytorch tensor
             input_len: int, length of each batch sequence
         """
-        with torch.no_grad():
-            output = model(labels)
-            log_probs = self.log_probs_from_logit(output.logits[:, :-1, :], labels[:, 1:])  # rotate
-            seq_log_prob = torch.sum(log_probs[:, input_len:])  # except last index token for calculating prob
+        output = model(labels)
+        log_probs = self.log_probs_from_logit(output.logits[:, :-1, :], labels[:, 1:])  # rotate
+        seq_log_prob = torch.sum(log_probs[:, input_len:])  # except last index token for calculating prob
 
         return seq_log_prob.cpu().numpy()
 
+    @torch.no_grad()
     def inference(
         self,
         model: nn.Module,
@@ -562,6 +566,7 @@ class TextGenerationTuner(PreTrainTuner):
         do_sample: bool = None,
         use_cache: bool = True,
     ) -> List[Dict]:
+        """ method for making the answer from the given prompt (context + query) """
         # prompt = f"[query]\n{query}\n\n[context]\n{context}\n\n"
         # prompt = f"[context]\n{context}\n\n[query]\n{query}\n\n"
         prompt = f"{context}"
@@ -581,12 +586,12 @@ class TextGenerationTuner(PreTrainTuner):
             do_sample=do_sample,
             use_cache=use_cache,
         )
-        # logp = self.sequence_probs(
-        #     model=model,
-        #     labels=output,
-        #     input_len=len(input_ids[0])
-        # )
-        # print(f"Decoding Probability: {logp}")
+        logp = self.sequence_probs(
+            model=model,
+            labels=output,
+            input_len=len(input_ids[0])
+        )
+        print(f"Decoding Probability: {logp}")
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
 
 

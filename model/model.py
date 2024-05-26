@@ -101,6 +101,7 @@ class CasualLanguageModel(nn.Module, AbstractTask):
         if self.cfg.use_pretrained:
             if self.cfg.generate_mode:  # for generation mode or pretraining mode with AutoModelForCausalLM
                 _, logit, _, last_hidden_states, _ = self.model(input_ids=inputs['input_ids'], attention_mask=inputs['attention_mask'])
+
             else:  # for pretraining mode with AutoModel
                 last_hidden_states = self.feature(inputs).last_hidden_state
         else:
