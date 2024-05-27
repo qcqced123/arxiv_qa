@@ -86,6 +86,13 @@ def create_index(es: Elasticsearch) -> None:
     return
 
 
+def delete_index(es: Elasticsearch) -> None:
+    """ function for deleting index in elastic search engine
+    """
+    es.indices.delete(index="document_embedding")
+    return
+
+
 def insert_doc_embedding(df: pd.DataFrame, encoder: SentenceTransformer, es: Elasticsearch) -> None:
     """ function for inserting doc embedding into elastic search engine
 
