@@ -77,9 +77,7 @@ def chunk_by_recursive_search(
 
 
 def chunk_by_latex():
-    splitter = LatexTextSplitter(
-        
-    )
+    splitter = LatexTextSplitter()
 
 
 def chunk_by_html():

@@ -80,7 +80,7 @@ if __name__ == '__main__':
     standard = 'relevance'
     values = set_sorting(sorting=standard)
 
-    query = pd.read_csv('paper_id_list.csv').paper_id.tolist()
+    query = pd.read_csv('./download/paper_id_list.csv').paper_id.tolist()
 
-    with Pool(processes=6) as pool:
-        results = pool.map(main_loop, query[0:4000])  # 0~8000 for train, 8000~ for test
+    with Pool(processes=4) as pool:
+        results = pool.map(main_loop, query[0:8000])  # 0~8000 for train, 8000~ for test
