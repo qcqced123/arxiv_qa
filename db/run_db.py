@@ -12,6 +12,25 @@ from db.index_mapping import indexMapping
 load_dotenv()
 
 
+def create_index(es: Elasticsearch) -> None:
+    """ function for creating index in elastic search engine with index mapping object in index_mapping.py
+    """
+    try:
+        es.indices.create(index="document_embedding", mappings=indexMapping)
+
+    except Exception as e:
+        print(f"Error Message: {e}")
+
+    return
+
+
+def delete_index(es: Elasticsearch) -> None:
+    """ function for deleting index in elastic search engine
+    """
+    es.indices.delete(index="document_embedding")
+    return
+
+
 def get_encoder(model_name: str = 'sentence-transformers/all-MiniLM-L6-v2') -> SentenceTransformer:
     """ function for getting encoder
 
@@ -77,20 +96,6 @@ def search_candidates(query: str, encoder: SentenceTransformer, es: Elasticsearc
         source=return_data
     )
     return candidate['hits']['hits']
-
-
-def create_index(es: Elasticsearch) -> None:
-    """ function for creating index in elastic search engine with index mapping object in index_mapping.py
-    """
-    es.indices.create(index="document_embedding", mappings=indexMapping)
-    return
-
-
-def delete_index(es: Elasticsearch) -> None:
-    """ function for deleting index in elastic search engine
-    """
-    es.indices.delete(index="document_embedding")
-    return
 
 
 def insert_doc_embedding(df: pd.DataFrame, encoder: SentenceTransformer, es: Elasticsearch) -> None:

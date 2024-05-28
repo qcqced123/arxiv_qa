@@ -14,6 +14,7 @@ from configuration import CFG
 from trainer.train_loop import train_loop, inference_loop
 from dataset_class.preprocessing import load_all_types_dataset
 from dataset_class.make_dataset import build_doc_embedding_db
+from document_encoder.document_encoder import document_encoder
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -71,12 +72,6 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 
     os_type = platform.system()
     es = run_engine(url=get_db_url(), auth=get_db_auth(os_type), cert=get_db_cert(os_type))
-    try:
-        create_index(es)
-
-    except Exception as e:
-        print("Error in creating index:", e)
-        pass
 
     if pipeline_type == "pretrain":
         retriever = get_encoder()
@@ -84,14 +79,11 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             load_all_types_dataset('./dataset_class/arxiv_qa/train_paper_meta_db.csv')
         )
 
-        insert_doc_embedding(
-            df=df,
-            encoder=retriever,
-            es=es
+        document_encoder(
+            es=es,
+            retriever=retriever,
+            df=df
         )
-
-    if pipeline_type == "pretrain":
-        pass
 
     elif pipeline_type == "fine_tune":
         # train_loop()

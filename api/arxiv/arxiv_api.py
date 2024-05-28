@@ -1,6 +1,7 @@
 import arxiv
 import pandas as pd
 
+from typing import List
 from tqdm.auto import tqdm
 from multiprocessing import Pool
 
@@ -30,12 +31,12 @@ def set_sorting(sorting: str = 'relevance') -> object:
         return arxiv.SortCriterion.LastUpdatedDate
 
 
-def main_loop(query: str, data_type: str = 'train', max_results: int = 10, sorting=arxiv.SortCriterion.Relevance):
+def main_loop(queries: List[str], data_type: str = 'train', max_results: int = 10, sorting=arxiv.SortCriterion.Relevance) -> None:
     """ main loop function for downloading query output from arxiv
 
     this function will download the paper named change 2110.03353v1 into it's title
     Usage:
-        query: 'iclr2020', 'ELECTRA', 'NLP', 'Transformer' ...
+        queries: 'iclr2020', 'ELECTRA', 'NLP', 'Transformer' ...
         max_results: 10, 20, 30, 40, 50 ...
         sorting: 'relevance', 'submittedDate', 'lastUpdatedDate'
 
@@ -43,7 +44,7 @@ def main_loop(query: str, data_type: str = 'train', max_results: int = 10, sorti
         ACL, EMNLP, NAACL, COLING, EACL
 
     Args:
-        query: str, query string for searching the arxiv database
+        queries: default List[str], query string for searching the arxiv database
         data_type: 'train', 'test' args for determining the download file's name and path
         max_results: int, maximum number of results to return
         sorting: object, sorting criterion for the search results
@@ -51,26 +52,28 @@ def main_loop(query: str, data_type: str = 'train', max_results: int = 10, sorti
     Returns:
         arxiv_df: pd.DataFrame, dataframe containing the search results
     """
+    for query in tqdm(queries):
+        try:
+            client = arxiv.Client(page_size=1000, delay_seconds=2, num_retries=3)
+            result = client.results(
+                arxiv.Search(query=query, max_results=max_results, sort_by=sorting)
+            )
 
-    client = arxiv.Client(page_size=1000, delay_seconds=2, num_retries=3)
-    result = client.results(
-        arxiv.Search(query=query, max_results=max_results, sort_by=sorting)
-    )
+            paper_list = []
+            for paper in tqdm(result):
+                paper_list.append(paper)
+                url = paper.entry_id
+                title = paper.title.replace('/', '_')
+                pid = query if data_type == 'train' else url[url.find('abs/') + len('abs/'):][:-2]
+                filename = f"{pid}_{title}.pdf"
+                paper.download_pdf(
+                    dirpath='./train/',
+                    filename=filename
+                )
+        except Exception as e:
+            print(f'Error: {e}')
 
-    paper_list = []
-    for paper in tqdm(result):
-        paper_list.append(paper)
-        url = paper.entry_id
-        title = paper.title.replace('/', '_')
-        pid = query if data_type == 'train' else url[url.find('abs/') + len('abs/'):][:-2]
-        filename = f"{pid}_{title}.pdf"
-        paper.download_pdf(
-            dirpath='./download/train/',
-            filename=filename
-        )
-
-    arxiv_df = pd.DataFrame([vars(paper) for paper in paper_list])
-    return arxiv_df
+    return
 
 
 if __name__ == '__main__':
@@ -80,7 +83,9 @@ if __name__ == '__main__':
     standard = 'relevance'
     values = set_sorting(sorting=standard)
 
-    query = pd.read_csv('./download/paper_id_list.csv').paper_id.tolist()
-
-    with Pool(processes=4) as pool:
-        results = pool.map(main_loop, query[0:8000])  # 0~8000 for train, 8000~ for test
+    n_jobs = 4
+    query = pd.read_csv('./paper_id_list.csv').paper_id.tolist()
+    # next time, start at 430~2500
+    chunked = [query[i:i + len(query)//n_jobs] for i in range(0, len(query), len(query)//n_jobs)]
+    with Pool(processes=n_jobs) as pool:
+        pool.map(main_loop, chunked)

@@ -13,7 +13,8 @@ from configuration import CFG
 from utils.helper import class2dict
 from trainer.trainer import TextGenerationTuner
 from trainer.trainer_utils import get_name, EarlyStopping
-from db.run_db import get_encoder, search_candidates
+from db.run_db import get_encoder
+from query_encoder.query_encoder import query_encoder
 
 g = torch.Generator()
 g.manual_seed(CFG.seed)
@@ -129,22 +130,14 @@ def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elastics
     )
     _, generator, *_ = tuner.model_setting()
 
-    answers = []
+    answers = []  # retrieve the top-k documents from the elastic search engine
     for query in queries:
-        result = search_candidates(
-            query=query,
-            encoder=retriever,
+        context = query_encoder(
             es=es,
-            top_k=2,
+            retriever=retriever,
+            query=query,
+            top_k=5
         )
-
-        context = ''
-        for i, res in enumerate(result):
-            curr = f"Title {i + 1}: " + res['_source']['title'] + "\n"
-            curr += res['_source']['doc']
-            context += curr
-            if i + 1 != len(result):
-                context += "\n\n"
 
         answer = tuner.inference(
             model=generator,
@@ -164,5 +157,6 @@ def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elastics
             use_cache=cfg.use_cache
         )
         answers.append(answer)
+
     return answers
 
