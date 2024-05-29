@@ -24,6 +24,7 @@ for making better split Arxiv paper document
 
 """
 import os
+import unstructured
 
 from typing import List
 
@@ -157,7 +158,8 @@ def convert_pdf_table_to_html(path: str, strategy: str = "hi_res", model_name: s
         infer_table_structure=True,
     )
     for element in elements:
-        print(element)
+        if isinstance(element, unstructured.documents.elements.Table):
+            print(element.metadata.text_as_html)
 
     return elements
 
