@@ -137,13 +137,16 @@ def chunk_for_korean():
     pass
 
 
-def convert_pdf_table_to_html(path: str, strategy: str = "hi_res", model_name: str = "yolox"):
+def convert_pdf_table_to_html(path: str, strategy: str = "hi_res", model_name: str = "yolox") -> List[str]:
     """ extract table from pdf file and convert to html code
 
     Args:
         path: str, path to the pdf file
         strategy: str, strategy for partitioning
         model_name: str, model name for partitioning
+
+    Returns:
+        tables (List[str]): list of html code for the tables in the pdf file
 
     Reference:
         https://wikidocs.net/156108
@@ -157,11 +160,8 @@ def convert_pdf_table_to_html(path: str, strategy: str = "hi_res", model_name: s
         model_name=model_name,
         infer_table_structure=True,
     )
-    for element in elements:
-        if isinstance(element, unstructured.documents.elements.Table):
-            print(element.metadata.text_as_html)
-
-    return elements
+    tables = [e.metadata.text_as_html for e in elements if isinstance(e, unstructured.documents.elements.Table)]
+    return tables
 
 
 if __name__ == '__main__':
