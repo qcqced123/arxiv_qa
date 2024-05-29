@@ -84,8 +84,8 @@ if __name__ == '__main__':
     values = set_sorting(sorting=standard)
 
     n_jobs = 4
-    query = pd.read_csv('./paper_id_list.csv').paper_id.tolist()
-    # next time, start at 430~2500
+    query = pd.read_csv('./paper_id_list.csv').paper_id.tolist() # next time, start at 430~2500
     chunked = [query[i:i + len(query)//n_jobs] for i in range(0, len(query), len(query)//n_jobs)]
+    resume_chunked = [chunk[640:] for chunk in chunked]
     with Pool(processes=n_jobs) as pool:
-        pool.map(main_loop, chunked)
+        pool.map(main_loop, resume_chunked)

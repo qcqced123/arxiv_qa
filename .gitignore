@@ -1081,3 +1081,4 @@ cython_debug/
 *.pkl
 *.pdf
 *.pdf
+!/test.ipynb

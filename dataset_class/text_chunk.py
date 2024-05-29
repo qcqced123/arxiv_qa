@@ -19,14 +19,15 @@ for making better split Arxiv paper document
 4) There are a lot of tables for visualizing the experimental results
     - use pdf partitioning strategy for splitting the table
     - convert pdf table to html code for making the model to understand the table
-
+      (convert_pdf_table_to_html())
 5)
 
 """
 import os
+import re
 import unstructured
 
-from typing import List
+from typing import List, Tuple, Any, Dict
 
 from unstructured.partition.pdf import partition_pdf
 from unstructured.staging.base import elements_to_json
@@ -77,11 +78,10 @@ def chunk_by_recursive_search(
     chunk_size: int = 512,
     over_lapping_size: int = 128,
 ):
-    """ For this text, 450 splits the paragraphs perfectly,
-    You can even switch the chunk size to 469 and get the same splits,
+    """ Wrapper function for langchain.RecursiveCharacterTextSplitter, splitting method by recursive search
+    Recursive search means that the splitter will recursively search for the separator in the text.
 
-    This is because this splitter builds in a bit of cushion
-    and wiggle room to allow your chunks to 'snap' to the nearest separator.
+    This splitter is useful for splitting text that has a lot of rules for writing such as paper, article.
 
     if you want to use this splitter, you do not cleansing separators word such as \n, \n\n, \t ... etc
 
@@ -104,9 +104,21 @@ def chunk_by_recursive_search(
     return splitter.create_documents([text])
 
 
-def chunk_by_latex():
-    """  """
-    splitter = LatexTextSplitter()
+def chunk_by_latex(
+    text: str,
+    chunk_size: int = 512,
+    over_lapping_size: int = 128,
+):
+    """ Wrapper function for langchain.LatexTextSplitter, splitting method by latex
+
+    Latex splitter is useful for splitting text that has a lot of mathematical formulas
+
+    """
+    splitter = LatexTextSplitter(
+        chunk_size=chunk_size,
+        chunk_overlap=over_lapping_size,
+    )
+    return splitter.create_documents([text])
 
 
 def chunk_by_html():
@@ -137,7 +149,43 @@ def chunk_for_korean():
     pass
 
 
-def convert_pdf_table_to_html(path: str, strategy: str = "hi_res", model_name: str = "yolox") -> List[str]:
+def build_latex_code(text: str) -> str:
+    pattern = r'(\b\w+\b)(\d*)(?=\()'
+    return re.sub(pattern, r'\\text{\1}_{\2}', text)
+
+
+def classify_document_element(
+    elements: List
+) -> Tuple[str, List[Any], List[str]]:
+    """ function for classifying document elements from the unstructured library
+
+    Args:
+        elements: List[unstructured.documents.elements.DocumentElement], list of document elements
+
+    Returns:
+        document: str, document text (body of the document)
+        tables: List[Any], list of html tables code (experimental results)
+        formulas: List[str], list of latex code for expressing formulas (mathematical formulas)
+    """
+    document = ""
+    tables, formulas = [], []
+    for i, e in enumerate(elements):
+        if isinstance(e, unstructured.documents.elements.Table):
+            tables.append(str(e.metadata.text_as_html))
+
+        elif isinstance(e, unstructured.documents.elements.Title):
+            document += f"\n\n{str(e)}"
+
+        elif isinstance(e, unstructured.documents.elements.NarrativeText):
+            document += f"\n{str(e)}"
+
+        elif isinstance(e, unstructured.documents.elements.Formula):
+            formulas.append(build_latex_code(str(e)))
+
+    return document, tables, formulas
+
+
+def cut_pdf_to_sub_module_with_text(path: str, strategy: str = "hi_res", model_name: str = "yolox") -> Dict[str, List[str]]:
     """ extract table from pdf file and convert to html code
 
     Args:
@@ -152,6 +200,7 @@ def convert_pdf_table_to_html(path: str, strategy: str = "hi_res", model_name: s
         https://wikidocs.net/156108
         https://docs.unstructured.io/welcome
         https://docs.unstructured.io/open-source/concepts/partitioning-strategies
+        https://github.com/Unstructured-IO/unstructured/blob/main/unstructured/documents/elements.py#L642
         https://github.com/FullStackRetrieval-com/RetrievalTutorials/blob/main/tutorials/LevelsOfTextSplitting/5_Levels_Of_Text_Splitting.ipynb
     """
     elements = partition_pdf(
@@ -160,15 +209,23 @@ def convert_pdf_table_to_html(path: str, strategy: str = "hi_res", model_name: s
         model_name=model_name,
         infer_table_structure=True,
     )
-    tables = [e.metadata.text_as_html for e in elements if isinstance(e, unstructured.documents.elements.Table)]
-    return tables
+    document, tables, formulas = classify_document_element(elements)
+    return {
+        'text': document,
+        'table': tables,
+        'formula': formulas
+    }
 
 
 if __name__ == '__main__':
-    result = convert_pdf_table_to_html(
+    result = cut_pdf_to_sub_module_with_text(
         path=r"./attention_is_all_you_need.pdf",
         strategy="hi_res",
         model_name="yolox"
     )
+    print(f"text: {result['text']}")
+    print(f"table: {result['table']}")
+    print(f"formula: {result['formula']}")
+
 
 
