@@ -182,3 +182,6 @@ class CFG:
     no_repeat_ngram_size: int = None,
     do_sample: bool = False,
     use_cache: bool = True,
+
+    """ Pipeline Type: Make """
+    n_jobs = 5

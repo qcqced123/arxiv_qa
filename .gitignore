@@ -501,7 +501,7 @@ _ReSharper*/
 *.[Rr]e[Ss]harper
 *.DotSettings.user
 
-# TeamCity is a build add-in
+# TeamCity is a make add-in
 _TeamCity*
 
 # DotCover is a Code Coverage Tool
@@ -567,7 +567,7 @@ PublishScripts/
 *.snupkg
 # The packages folder can be ignored because of Package Restore
 **/[Pp]ackages/*
-# except build/, which is used as an MSBuild target.
+# except make/, which is used as an MSBuild target.
 !**/[Pp]ackages/build/
 # Uncomment if necessary however generally it will be regenerated when needed
 #!**/[Pp]ackages/repositories.config
@@ -654,7 +654,7 @@ FakesAssemblies/
 .ntvs_analysis.dat
 node_modules/
 
-# Visual Studio 6 build log
+# Visual Studio 6 make log
 *.plg
 
 # Visual Studio 6 workspace options file
@@ -674,7 +674,7 @@ node_modules/
 *.ncb
 *.aps
 
-# Visual Studio LightSwitch build output
+# Visual Studio LightSwitch make output
 **/*.HTMLClient/GeneratedArtifacts
 **/*.DesktopClient/GeneratedArtifacts
 **/*.DesktopClient/ModelManifest.xml
@@ -706,7 +706,7 @@ __pycache__/
 # Telerik's JustMock configuration file
 *.jmconfig
 
-# BizTalk build output
+# BizTalk make output
 *.btp.cs
 *.btm.cs
 *.odx.cs
@@ -756,7 +756,7 @@ FodyWeavers.xsd
 # Local History for Visual Studio Code
 .history/
 
-# Windows Installer files from build outputs
+# Windows Installer files from make outputs
 *.cab
 *.msi
 *.msix

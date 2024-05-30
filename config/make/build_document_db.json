@@ -1,0 +1,33 @@
+{
+    "pipeline_setting": {
+        "pipeline_type": "make",
+        "n_jobs": 5
+
+    },
+
+    "generate_options": {
+        "retriever": "sentence-transformers/all-MiniLM-L6-v2",
+        "model_name": "meta-llama/Llama-3-8b-hf",
+        "tokenizer_name": "meta-llama/Llama-3-8b-hf",
+        "max_new_tokens": 512,
+        "strategy": "beam",
+        "penalty_alpha": 0.6,
+        "num_beams": 2,
+        "temperature": 1.0,
+        "top_k": 50,
+        "top_p": 1,
+        "repetition_penalty": 2.0,
+        "length_penalty": 1.0,
+        "no_repeat_ngram_size": 2,
+        "do_sample": false,
+        "use_cache": true
+    },
+
+    "common_settings": {
+        "wandb": true,
+        "seed": 42,
+        "n_gpu": 1,
+        "gpu_id": 0,
+        "num_workers": 4
+    }
+}

@@ -2,6 +2,7 @@ import pandas as pd
 
 from elasticsearch import Elasticsearch
 from sentence_transformers import SentenceTransformer
+
 from db.run_db import create_index, insert_doc_embedding
 
 

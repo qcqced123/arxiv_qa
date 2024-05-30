@@ -173,7 +173,7 @@ def cal_token_length(text: str) -> int:
 
 
 def build_qa_dataframe(text: str) -> pd.DataFrame:
-    """ build QA dataset from the given paper link
+    """ make QA dataset from the given paper link
 
     Args:
         text (str): the text (Question and Answering from Open Ai GPT-3.5 API or Google AI Gemini API)
@@ -188,7 +188,7 @@ def build_qa_dataframe(text: str) -> pd.DataFrame:
 
 
 def build_qa_dataset(chunk_size: int = 2, eps: int = 500) -> pd.DataFrame:
-    """ build the QA dataset from the arxiv paper list
+    """ make the QA dataset from the arxiv paper list
 
     Args:
         chunk_size (int): the chunk size for the splitting the long text
@@ -220,7 +220,7 @@ def build_qa_dataset(chunk_size: int = 2, eps: int = 500) -> pd.DataFrame:
 
 
 def build_train_dataframe() -> pd.DataFrame:
-    """ build the paper meta data from the arxiv paper list for train dataset
+    """ make the paper meta data from the arxiv paper list for train dataset
 
     url example: 'https://arxiv.org/pdf/2006.03654'
 
@@ -250,7 +250,7 @@ def build_train_dataframe() -> pd.DataFrame:
 
 
 def build_train_dataframe_for_multiprocessing(paper_list: List[str]) -> List[List[str]]:
-    """ build the paper meta data from the arxiv paper list for train dataset
+    """ make the paper meta data from the arxiv paper list for train dataset
 
     url example: 'https://arxiv.org/pdf/2006.03654'
     """
@@ -273,7 +273,7 @@ def build_train_dataframe_for_multiprocessing(paper_list: List[str]) -> List[Lis
 
 
 def build_train_text() -> Dict[str, List[List[int]]]:
-    """ build the text inputs for the casual language modeling for the arxiv paper (Generative QA Task)
+    """ make the text inputs for the casual language modeling for the arxiv paper (Generative QA Task)
     """
     tokenizer = AutoTokenizer.from_pretrained('meta-llama/Llama-2-7b-hf')
 
@@ -298,7 +298,7 @@ def build_train_text() -> Dict[str, List[List[int]]]:
 
 
 def build_doc_embedding_db(df: pd.DataFrame) -> pd.DataFrame:
-    """ build the document embedding for the arxiv paper
+    """ make the document embedding for the arxiv paper
 
     Args:
         df (pd.DataFrame): the dataframe containing the paper meta data

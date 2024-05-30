@@ -98,13 +98,13 @@ def search_candidates(query: str, encoder: SentenceTransformer, es: Elasticsearc
     return candidate['hits']['hits']
 
 
-def insert_doc_embedding(df: pd.DataFrame, encoder: SentenceTransformer, es: Elasticsearch) -> None:
+def insert_doc_embedding(encoder: SentenceTransformer, es: Elasticsearch, df: pd.DataFrame) -> None:
     """ function for inserting doc embedding into elastic search engine
 
     Args:
-        df: pd.DataFrame, dataframe containing [paper id, doc id, doc, doc embedding]
         encoder: SentenceTransformer, embedding mapper for encoding
         es: Elasticsearch, elastic search engine
+        df: pd.DataFrame, dataframe containing [paper id, doc id, doc, doc embedding]
     """
     df = encode_docs(df, encoder)
     records = df.to_dict(orient='records')
