@@ -19,6 +19,7 @@ from configuration import CFG
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
+from generate_question.generate_question import get_necessary_module, generate_with_llama, google_gemini_api
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -57,36 +58,43 @@ def get_db_cert(os_type: str) -> str:
     return os.environ.get('MAC_CA_CERTS') if os_type == "Darwin" else os.environ.get('LINUX_CA_CERTS')
 
 
-def make_loop(path_list: List[str]) -> None:
+def make_loop(path_list: List[str]) -> List:
+    data_list = []
     for path in tqdm(path_list):
         pid, title = path.split('_')  # current pdf file's paper id and title for making dataframe
-        result = cut_pdf_to_sub_module_with_text(
-            path=base_path + path,
-            strategy="hi_res",
-            model_name="yolox"
-        )
-        document = chunk_by_recursive_search(
-            text=result['text'],
-            chunk_size=1024,
-            over_lapping_size=128
-        )
-        documents = [e.page_content for e in document]
-        for e in result["table"]:
-            documents.append(e)
+        try:
+            result = cut_pdf_to_sub_module_with_text(
+                path=base_path + path,
+                strategy="hi_res",
+                model_name="yolox"
+            )
+            document = chunk_by_recursive_search(
+                text=result['text'],
+                chunk_size=1024,
+                over_lapping_size=128
+            )
+            documents = [e.page_content for e in document]
+            for e in result["table"]:
+                documents.append(e)
 
-        for e in result["formula"]:
-            documents.append(e)
-        documents.append(result['reference'])
+            for e in result["formula"]:
+                documents.append(e)
+            documents.append(result['reference'])
 
-        data_list = [[pid, f"{pid}_{i}", title, d] for i, d in enumerate(documents)]
-        curr = pd.DataFrame(
-            data=data_list,
-            columns=['paper_id', 'doc_id', 'title', 'doc']
-        )
-        output_path = f"dataset_class/datafolder/arxiv_qa/partition/{pid}.csv"
-        curr.to_csv(output_path, index=False)
+            data = [[pid, f"{pid}_{i}", title, d] for i, d in enumerate(documents)]
+            data_list.extend(data)
 
-    return
+            curr = pd.DataFrame(
+                data=data,
+                columns=['paper_id', 'doc_id', 'title', 'doc']
+            )
+            output_path = f"dataset_class/datafolder/arxiv_qa/partition/{pid}.csv"
+            curr.to_csv(output_path, index=False)
+
+        except Exception as e:
+            print(f"Error Message: {e}")
+
+    return data_list
 
 
 def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
@@ -145,47 +153,26 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         # apply text chunking strategy from text_chunk module
         # linear for-loop by pdf list
         # multi-processing for-loop by pdf list
-        df = pd.DataFrame(columns=['paper_id', 'doc_id', 'title', 'doc'])
         size = len(path_list)//cfg.n_jobs
         chunked = [path_list[i:i+size] for i in range(0, len(path_list), size)]
+        df = pd.DataFrame(columns=['paper_id', 'doc_id', 'title', 'doc'])
 
-        for path in tqdm(path_list):
-            pid, title = path.split('_')  # current pdf file's paper id and title for making dataframe
-            result = cut_pdf_to_sub_module_with_text(
-                path=base_path+path,
-                strategy="hi_res",
-                model_name="yolox"
-            )
-            document = chunk_by_recursive_search(
-                text=result['text'],
-                chunk_size=1024,
-                over_lapping_size=128
-            )
-            documents = [e.page_content for e in document]
-            for e in result["table"]:
-                documents.append(e)
+        with pool.Pool(processes=cfg.n_jobs) as p:
+            elements = p.map(make_loop, chunked)
 
-            for e in result["formula"]:
-                documents.append(e)
-            documents.append(result['reference'])
+        for element in elements:
+            df = pd.concat([df, pd.DataFrame(element, columns=['paper_id', 'doc_id', 'title', 'doc'])], axis=0)
 
-            # linear for-loop by elements of pdf
-            data_list = [[pid, f"{pid}_{i}", title, d] for i, d in enumerate(documents)]
-            curr = pd.DataFrame(
-                data=data_list,
-                columns=['paper_id', 'doc_id', 'title', 'doc']
-            )
-            df = pd.concat([df, curr], axis=0)
-
-            # backup
-            output_path = f"dataset_class/datafolder/arxiv_qa/partition/{pid}.csv"
-            curr.to_csv(output_path, index=False)
-
-        # backup
         output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"
         df.to_csv(output_path, index=False)
 
-        # need to add generate question pipeline
+        modules = get_necessary_module(cfg)
+        tokenizer, model = modules['tokenizer'], modules['model']
+        questions = [generate_with_llama(cfg, tokenizer(row['doc'], return_tensors='pt').input_ids.to(cfg.device), tokenizer, model) for i, row in tqdm(df.iterrows(), total=len(df))]
+        df['question'] = questions
+
+        output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"
+        df.to_csv(output_path, index=False)
 
     # branch for calling pipeline that inserts the document embedding into the elastic search engine
     elif pipeline_type == "insert":

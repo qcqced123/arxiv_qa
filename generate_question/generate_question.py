@@ -3,21 +3,39 @@ import pandas as pd
 import torch.nn as nn
 import google.generativeai as genai
 
-from transformers import AutoModelForCausalLM, AutoTokenizer
+
 from tqdm.auto import tqdm
+from configuration import CFG
 from dotenv import load_dotenv
-from collections import defaultdict
 from typing import List, Dict, Any
+from collections import defaultdict
+from transformers import AutoModelForCausalLM, AutoTokenizer
 
 load_dotenv()
 
 
-def generate_with_llama(input_ids: List[int], tokenizer: AutoTokenizer, model: nn.Module, temperature: float = 0) -> str:
+def get_necessary_module(cfg: CFG) -> Dict[str, Any]:
+    """ function for getting necessary module for the project
+
+    Args:
+        cfg (CFG): configuration object for the project
+
+    Returns:
+        Dict[str, Any]: dictionary object for the necessary module
+    """
+    return {
+        'tokenizer': AutoTokenizer.from_pretrained(cfg.model_name),
+        'model': AutoModelForCausalLM.from_pretrained(cfg.model_name).to(cfg.device)
+    }
+
+
+def generate_with_llama(cfg: CFG, input_ids: List[int], tokenizer: AutoTokenizer, model: nn.Module) -> str:
     """ function for generating "arxiv question-document dataset" by using meta-ai llama3-8b model
 
     this function will do the "one-shot learning"(meta-learning) for generating the dataset
 
     Args:
+        cfg (CFG): configuration object for the project
         input_ids (List[int]): list of input ids for the model, already passing throug the tokenizer
         tokenizer (AutoTokenizer): default is llama3-8b tokenizer, for tokenizing the input text
         model (nn.Module): default is llama3-8b model, for generating the question
@@ -27,18 +45,18 @@ def generate_with_llama(input_ids: List[int], tokenizer: AutoTokenizer, model: n
     """
     question = model.generate(
         input_ids=input_ids,
-        max_new_tokens=max_new_tokens,
-        max_length=max_length,
-        penalty_alpha=penalty_alpha,
-        num_beams=num_beams,
-        temperature=temperature,
-        top_k=top_k,
-        top_p=top_p,
-        repetition_penalty=repetition_penalty,
-        length_penalty=length_penalty,
-        no_repeat_ngram_size=no_repeat_ngram_size,
-        do_sample=do_sample,
-        use_cache=use_cache,
+        max_new_tokens=cfg.max_new_tokens,
+        max_length=cfg.max_len,
+        penalty_alpha=cfg.penalty_alpha,
+        num_beams=cfg.num_beams,
+        temperature=cfg.temperature,
+        top_k=cfg.top_k,
+        top_p=cfg.top_p,
+        repetition_penalty=cfg.repetition_penalty,
+        length_penalty=cfg.length_penalty,
+        no_repeat_ngram_size=cfg.no_repeat_ngram_size,
+        do_sample=cfg.do_sample,
+        use_cache=cfg.use_cache,
     )
     return tokenizer.decode(question[0], skip_special_tokens=True)
 
