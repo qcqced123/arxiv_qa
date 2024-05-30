@@ -15,7 +15,7 @@ from langchain_community.document_loaders.image import UnstructuredImageLoader
 
 
 load_dotenv()
-BASE_URL = './api/download/train/'
+BASE_URL = './api/download/insert/'
 paper_list = os.listdir(BASE_URL)
 
 
@@ -220,12 +220,12 @@ def build_qa_dataset(chunk_size: int = 2, eps: int = 500) -> pd.DataFrame:
 
 
 def build_train_dataframe() -> pd.DataFrame:
-    """ make the paper meta data from the arxiv paper list for train dataset
+    """ make the paper meta data from the arxiv paper list for insert dataset
 
     url example: 'https://arxiv.org/pdf/2006.03654'
 
     """
-    BASE_URL = '../crawler/arxiv/download/train/'
+    BASE_URL = '../crawler/arxiv/download/insert/'
     paper_list = os.listdir(BASE_URL)
 
     data = []
@@ -250,7 +250,7 @@ def build_train_dataframe() -> pd.DataFrame:
 
 
 def build_train_dataframe_for_multiprocessing(paper_list: List[str]) -> List[List[str]]:
-    """ make the paper meta data from the arxiv paper list for train dataset
+    """ make the paper meta data from the arxiv paper list for insert dataset
 
     url example: 'https://arxiv.org/pdf/2006.03654'
     """

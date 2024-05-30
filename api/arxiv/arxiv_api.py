@@ -31,7 +31,7 @@ def set_sorting(sorting: str = 'relevance') -> object:
         return arxiv.SortCriterion.LastUpdatedDate
 
 
-def main_loop(queries: List[str], data_type: str = 'train', max_results: int = 10, sorting=arxiv.SortCriterion.Relevance) -> None:
+def main_loop(queries: List[str], data_type: str = 'insert', max_results: int = 10, sorting=arxiv.SortCriterion.Relevance) -> None:
     """ main loop function for downloading query output from arxiv
 
     this function will download the paper named change 2110.03353v1 into it's title
@@ -45,7 +45,7 @@ def main_loop(queries: List[str], data_type: str = 'train', max_results: int = 1
 
     Args:
         queries: default List[str], query string for searching the arxiv database
-        data_type: 'train', 'test' args for determining the download file's name and path
+        data_type: 'insert', 'test' args for determining the download file's name and path
         max_results: int, maximum number of results to return
         sorting: object, sorting criterion for the search results
 
@@ -64,10 +64,10 @@ def main_loop(queries: List[str], data_type: str = 'train', max_results: int = 1
                 paper_list.append(paper)
                 url = paper.entry_id
                 title = paper.title.replace('/', '_')
-                pid = query if data_type == 'train' else url[url.find('abs/') + len('abs/'):][:-2]
+                pid = query if data_type == 'insert' else url[url.find('abs/') + len('abs/'):][:-2]
                 filename = f"{pid}_{title}.pdf"
                 paper.download_pdf(
-                    dirpath='./train/',
+                    dirpath='./insert/',
                     filename=filename
                 )
         except Exception as e:

@@ -61,6 +61,7 @@ def get_db_cert(os_type: str) -> str:
 def make_loop(path_list: List[str]) -> List:
     data_list = []
     for path in tqdm(path_list):
+        print(path.split('_'))
         pid, title = path.split('_')  # current pdf file's paper id and title for making dataframe
         try:
             result = cut_pdf_to_sub_module_with_text(
@@ -137,7 +138,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         7) run the text generation tuner for generating the answer for the input query
 
     """
-    login_to_huggingface()
+    # login_to_huggingface()
     config_path = f'config/{pipeline_type}/{model_config}.json'
     sync_config(cfg, OmegaConf.load(config_path))
 
@@ -147,7 +148,6 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     # need to abstract this branch
     # branch for calling pipeline that builds the document embedding db, q-doc dataset
     if pipeline_type == "make":
-        base_path = r"api/arxiv/train/"
         path_list = os.listdir(base_path)
 
         # apply text chunking strategy from text_chunk module
@@ -205,7 +205,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 if __name__ == '__main__':
     config = CFG
     parser = argparse.ArgumentParser(description="Train Script")
-    parser.add_argument("pipeline_type", type=str, help="Train Type Selection")  # train, inference
+    parser.add_argument("pipeline_type", type=str, help="Train Type Selection")  # insert, inference
     parser.add_argument("model_config", type=str, help="Model config Selection")  # name of retriever-generator
     args = parser.parse_args()
 

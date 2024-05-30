@@ -96,7 +96,7 @@ class PreTrainTuner:
         return loader_train, loader_valid, len(train['input_ids'])
 
     def model_setting(self, len_train: int):
-        """ Function for init backbone's configuration & train utils setting,
+        """ Function for init backbone's configuration & insert utils setting,
         The design is inspired by the Builder Pattern
         """
         model = getattr(task, self.cfg.task)(self.cfg)
@@ -160,7 +160,7 @@ class PreTrainTuner:
             swa_start: int = None,
             swa_scheduler=None
     ) -> Tuple[Any, Union[float, ndarray, ndarray]]:
-        """ function for train loop with validation for each batch*N Steps
+        """ function for insert loop with validation for each batch*N Steps
         """
         scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
         losses = AverageMeter()
@@ -205,7 +205,7 @@ class PreTrainTuner:
                 scaler.update()
                 scheduler.step()
 
-            # logging train loss, gradient norm, lr to wandb
+            # logging insert loss, gradient norm, lr to wandb
             lr = scheduler.get_lr()[0]
             grad_norm = grad_norm.detach().cpu().numpy()
 
@@ -229,7 +229,7 @@ class PreTrainTuner:
         return losses.avg * self.cfg.n_gradient_accumulation_steps, val_score_max
 
     def train_fn(self, loader_train, model, criterion, optimizer, scheduler, epoch, awp=None, swa_model=None, swa_start=None, swa_scheduler=None) -> Tuple[Tensor, Tensor, Tensor]:
-        """ function for train loop
+        """ function for insert loop
         """
         scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
         losses = AverageMeter()
@@ -370,7 +370,7 @@ class CLMTuner(PreTrainTuner):
         swa_start: int = None,
         swa_scheduler=None
     ) -> Tuple[Any, Union[float, ndarray, ndarray]]:
-        """ function for train loop with validation for each batch*N Steps """
+        """ function for insert loop with validation for each batch*N Steps """
         losses = AverageMeter()
         scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
 
@@ -412,7 +412,7 @@ class CLMTuner(PreTrainTuner):
                 scaler.update()
                 scheduler.step()
 
-            # logging train loss, gradient norm, lr to wandb
+            # logging insert loss, gradient norm, lr to wandb
             lr = scheduler.get_lr()[0]
             wandb.log({
                 '<Per Step> Train Loss': losses.avg,
@@ -514,7 +514,7 @@ class TextGenerationTuner:
         return loader_train, loader_valid, len(train['input_ids'])
 
     def model_setting(self, len_train: int = None):
-        """ Function for init backbone's configuration & train utils setting,
+        """ Function for init backbone's configuration & insert utils setting,
         The design is inspired by the Builder Pattern
         """
         retriever = get_encoder(self.cfg.retriever)
@@ -532,7 +532,7 @@ class TextGenerationTuner:
         optimizer, lr_scheduler = None, None
         swa_model, swa_scheduler, awp = None, None, None
 
-        if self.cfg.pipeline_type == 'train':
+        if self.cfg.pipeline_type == 'insert':
             criterion = getattr(loss, self.cfg.loss_fn)(self.cfg.reduction)
             val_criterion = getattr(loss, self.cfg.val_loss_fn)(self.cfg.reduction)
             val_metric_list = [getattr(metric, f'{metrics}') for metrics in self.metric_list]
@@ -711,7 +711,7 @@ class SequenceClassificationTuner:
 
     def make_batch(self) -> Tuple[DataLoader, DataLoader, int]:
         base_path = './dataset_class/data_folder/'
-        df = load_all_types_dataset(base_path + self.cfg.domain + 'train.csv')
+        df = load_all_types_dataset(base_path + self.cfg.domain + 'insert.csv')
 
         train = df[df['fold'] != self.fold_value]
         valid = df[df['fold'] == self.fold_value]
@@ -738,7 +738,7 @@ class SequenceClassificationTuner:
         return loader_train, loader_valid, len(train)
 
     def model_setting(self, len_train: int):
-        """ Function for init backbone's configuration & train utils setting,
+        """ Function for init backbone's configuration & insert utils setting,
         The design is inspired by the Builder Pattern
         """
         model = getattr(task, self.cfg.task)(self.cfg)
@@ -807,7 +807,7 @@ class SequenceClassificationTuner:
         swa_start: int = None,
         swa_scheduler=None
     ) -> Tuple[Any, Union[float, ndarray, ndarray]]:
-        """ train method with step-level validation
+        """ insert method with step-level validation
         """
         losses = AverageMeter()
         scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
@@ -839,7 +839,7 @@ class SequenceClassificationTuner:
                 scaler.update()
                 scheduler.step()
 
-            # logging train loss, gradient norm, lr to wandb
+            # logging insert loss, gradient norm, lr to wandb
             lr = scheduler.get_lr()[0]
             grad_norm = grad_norm.detach().cpu().numpy()
 

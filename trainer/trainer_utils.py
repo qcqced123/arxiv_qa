@@ -480,7 +480,7 @@ class EarlyStopping(object):
             self.val_score = np.inf
 
     def detecting_anomaly(self) -> None:
-        """ Detecting Trainer's Error and Stop train loop """
+        """ Detecting Trainer's Error and Stop insert loop """
         torch.autograd.set_detect_anomaly(self.detect_anomaly)
         return
 

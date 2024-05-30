@@ -27,7 +27,7 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearc
     2) Make Early Stopping Object
     3) Initialize Metric Checker
     4) Initialize Train, Validation Input Object
-    5) Check if this train loop need to finish, by Early Stopping Object
+    5) Check if this insert loop need to finish, by Early Stopping Object
     """
 
     sub_name = f""

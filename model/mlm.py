@@ -124,7 +124,7 @@ class WholeWordMaskingCollator(PretrainingMaskingCollator):
     you must pass token, which is already normalized by tokenizer, to this module
 
     Example:
-        1) sub-word mlm masking: pretrained => pre##, ##train, ##ing => pre##, [MASK], ##ing
+        1) sub-word mlm masking: pretrained => pre##, ##insert, ##ing => pre##, [MASK], ##ing
         2) whole-word mlm masking: pretrained => [MASK], [MASK], [MASK]
 
     extend:

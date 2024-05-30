@@ -36,7 +36,7 @@ def hf_split_dataset(cfg: configuration.CFG, dataset: Dataset) -> Tuple[Dataset,
         This function is temporary just fit-able for Wikipedia dataset & MLM Task
     """
     dataset = dataset.train_test_split(cfg.split_ratio, seed=cfg.seed)
-    train, valid = dataset['train'], dataset['test']
+    train, valid = dataset['insert'], dataset['test']
     return train, valid
 
 
@@ -337,7 +337,7 @@ def null2str(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def load_data(data_path: str) -> pd.DataFrame:
-    """ Load data_folder from csv file like as train.csv, test.csv, val.csv
+    """ Load data_folder from csv file like as insert.csv, test.csv, val.csv
     """
     df = pd.read_csv(data_path)
     return df
@@ -446,7 +446,7 @@ def load_pkl(filepath: str) -> Any:
     """ Load pickle file
 
     Examples:
-        filepath = './dataset_class/data_folder/train.pkl'
+        filepath = './dataset_class/data_folder/insert.pkl'
     """
     with open(f'{filepath}', 'rb') as file:
         output = pickle.load(file)
@@ -457,7 +457,7 @@ def load_json(filepath: str) -> pd.DataFrame:
     """ Load json file
 
     Examples:
-        filepath = './dataset_class/data_folder/train.json'
+        filepath = './dataset_class/data_folder/insert.json'
     """
     output = pd.read_json(filepath)
     return output
@@ -467,7 +467,7 @@ def load_parquet(filepath: str) -> pd.DataFrame:
     """ Load parquet file
 
     Examples:
-        filepath = './dataset_class/data_folder/train.parquet'
+        filepath = './dataset_class/data_folder/insert.parquet'
     """
     output = pd.read_parquet(filepath)
     return output
@@ -477,7 +477,7 @@ def load_csv(filepath: str) -> pd.DataFrame:
     """ Load csv file
 
     Examples:
-        filepath = './dataset_class/data_folder/train.csv'
+        filepath = './dataset_class/data_folder/insert.csv'
     """
     output = pd.read_csv(filepath)
     return output
@@ -490,7 +490,7 @@ def load_all_types_dataset(path: str) -> pd.DataFrame:
         path: path in your local directory
 
     Examples:
-        load_all_types_dataset('./data_folder/squad2/train.json')
+        load_all_types_dataset('./data_folder/squad2/insert.json')
         load_all_types_dataset('./data_folder/yahoo_qa/test.csv')
         load_all_types_dataset('./data_folder/yelp/train_0.parquet')
 
