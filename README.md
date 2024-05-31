@@ -17,10 +17,10 @@ This project is a QA system for arxiv papers. The system is designed to answer q
 - **✂️ Text Chunk Strategy**
   - library: unstructured, langchain (explain)
   - strategy:
-    - 1) split the document into each elements by using unstructured
+    - split the document into each elements by using unstructured
       - Title, NarrativeText, Formula, Table, FigureCaption
     
-    - 2) apply the process of each elements:
+    - apply the process of each elements:
       - Title & NarrativeText: add the title and narrative text as a single chunk with appropriate seperator (it will be re-split into multiple chunks in the Recursive Chunking Strategy in langchain)
       - Formula: convert python math expression string to latex style code
       - Table: convert table to html table code
