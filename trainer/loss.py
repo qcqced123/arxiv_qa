@@ -190,9 +190,11 @@ class ContrastiveLoss(nn.Module):
     """
     Contrastive Loss which is basic method of Metric Learning
     Closer distance between data points in intra-class, more longer distance between data points in inter-class
+
     Distance:
         Euclidean Distance: sqrt(sum((x1 - x2)**2))
         Cosine Distance: 1 - torch.nn.function.cos_sim(x1, x2)
+
     Examples:
         model = SentenceTransformer('all-MiniLM-L6-v2')
         train_examples = [
@@ -200,9 +202,11 @@ class ContrastiveLoss(nn.Module):
             InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0)]
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
         train_loss = losses.ContrastiveLoss(model=model)
+
     Args:
         margin: margin value meaning for Area of intra class(positive area), default 1.0
         metric: standard of distance metrics, default cosine distance
+
     References:
         https://github.com/KevinMusgrave/pytorch-metric-learning
         https://github.com/UKPLab/sentence-transformers/blob/master/sentence_transformers/losses/ContrastiveLoss.py
@@ -262,11 +266,13 @@ class BatchDotProductContrastiveLoss(nn.Module):
 class ArcFace(nn.Module):
     """
     ArcFace Pytorch Implementation
+
     Args:
         dim_model: size of hidden states(latent vector)
         num_classes: num of target classes
         s: re-scale scaler, default 30.0
         m: Additive Angular Margin Penalty
+
     References:
         https://github.com/wujiyang/Face_Pytorch/blob/master/margin/ArcMarginProduct.py
         https://arxiv.org/abs/1801.07698
@@ -295,4 +301,3 @@ class ArcFace(nn.Module):
         loss = (one_hot * z) + ((1.0 - one_hot) * cosine)
         loss *= self.s
         return loss
-

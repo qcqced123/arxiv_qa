@@ -5,7 +5,7 @@ This project is a QA system for arxiv papers. The system is designed to answer q
 - **🔭 Query Encoder/Document Encoder (Retriever)**
   - library: sentence_transformers, transformers, torch
   - foundation model: sentence-transformers/all-MiniLM-L6-v2
-  - fine-tune method: metric learning(contrastive loss, multiple negative ranking loss)
+  - fine-tune method: metric learning (arcface, contrastive loss, multiple negative ranking loss)
   - fine-tune dataset: question-document relation dataset (custom made) (explain, download)
 
 - **🧠 Generator**
@@ -14,17 +14,23 @@ This project is a QA system for arxiv papers. The system is designed to answer q
   - fine-tune method: casual language modeling
   - fine-tune dataset: chunked document from arxiv papers (explain, download)
 
-- **Text Chunk Strategy**
+- **✂️ Text Chunk Strategy**
   - library: unstructured, langchain (explain)
   - strategy:
     - 1) split the document into each elements by using unstructured
       - Title, NarrativeText, Formula, Table, FigureCaption
     
-    - 2) apply the process of each elements
+    - 2) apply the process of each elements:
       - Title & NarrativeText: add the title and narrative text as a single chunk with appropriate seperator (it will be re-split into multiple chunks in the Recursive Chunking Strategy in langchain)
       - Formula: convert python math expression string to latex style code
       - Table: convert table to html table code
       - FigureCaption: add to Table object as a caption tag
+      - langchain.RecursiveSplitter: apply this method to body text(add Title and NarrativeText Elements)
+
+- **🔍 Search Engine**
+  - DB: Elasticsearch
+  - retrieve method: ElasticSearch.knn_search
   - 
+
 ## 📚 System Architecture
 ![Image Description](assets/images/rag_pipeline.drawio.png)
