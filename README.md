@@ -30,7 +30,8 @@ This project is a QA system for arxiv papers. The system is designed to answer q
 - **🔍 Search Engine**
   - DB: Elasticsearch
   - retrieve method: ElasticSearch.knn_search
-  - 
+    - distance metric: cosine similarity
+    - dimension of hidden state: 384
 
 ## 📚 System Architecture
 ![Image Description](assets/images/white_rag_pipeline.drawio.png)
