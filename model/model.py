@@ -8,8 +8,8 @@ from typing import List, Dict
 from model.mlm import MLMHead
 from model.clm import CLMHead
 from configuration import CFG
-from model.model_utils import freeze, reinit_topk
 from model.abstract_task import AbstractTask
+from model.model_utils import freeze, reinit_topk
 
 
 class MaskedLanguageModel(nn.Module, AbstractTask):
@@ -108,46 +108,6 @@ class CasualLanguageModel(nn.Module, AbstractTask):
             last_hidden_states, _ = self.feature(inputs)
         logit = self.lm_head(last_hidden_states) if self.lm_head is not None else logit
         return logit
-
-
-class QuestionAnswering(nn.Module, AbstractTask):
-    """ Fine-Tune Task Module for Question Answering Task, which is used for QA Task
-    you can select any backbone model as BERT, DeBERTa, RoBERTa ...  etc from huggingface hub or my own model hub
-
-    Also you can select specific Question Answering Tasks
-    1) Extractive QA
-    2) Community QA
-    3) Long-Form QA
-    4) Multi-Modal QA (Text2Image, Image2Text)
-    """
-    def __init__(self, cfg: CFG) -> None:
-        super(QuestionAnswering, self).__init__()
-        self.cfg = cfg
-        self.components = self.select_pt_model()
-        self.auto_cfg = self.components['plm_config']
-        self.model = self.components['plm']
-        self.prompt_encoder = self.components['prompt_encoder']
-
-        self.model.resize_token_embeddings(len(self.cfg.tokenizer))
-        self.fc = nn.Linear(self.cfg.dim_model, 2)
-        self._init_weights(self.fc)
-
-        if self.cfg.freeze:
-            freeze(self.model.embeddings)
-            freeze(self.model.encoder.layer[:self.cfg.num_freeze])
-
-        if self.cfg.reinit:
-            reinit_topk(self.model, self.cfg.num_reinit)
-
-        if self.cfg.gradient_checkpoint:
-            self.model.gradient_checkpointing_enable()
-
-    def feature(self, inputs: dict):
-        outputs = self.model(**inputs)
-        return outputs
-
-    def forward(self):
-        pass
 
 
 class SentimentAnalysis(nn.Module, AbstractTask):

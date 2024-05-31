@@ -27,11 +27,12 @@ This project is a QA system for arxiv papers. The system is designed to answer q
       - FigureCaption: add to Table object as a caption tag
       - langchain.RecursiveSplitter: apply this method to body text(add Title and NarrativeText Elements)
 
-- **🔍 Search Engine**
+- **🗂️ Document Embedding DB**
   - DB: Elasticsearch
-  - retrieve method: ElasticSearch.knn_search
+  - retrieve(search) method: knn (ElasticSearch.knn_search)
     - distance metric: cosine similarity
     - dimension of hidden state: 384
+
 
 ## 📚 System Architecture
 ![Image Description](assets/images/white_rag_pipeline.drawio.png)

@@ -1,54 +1,29 @@
 {
     "pipeline_setting": {
-        "pipeline_type": "train",
-        "name": "ArxivRAGModeling",
+        "pipeline_type": "fine_tune",
+        "name": "ArxivMetricLearning",
         "trainer": "TextGenerationTuner",
         "loop": "train_loop",
         "task": "CasualLanguageModel",
-        "domain": "commerce/amazon",
         "dataset": "TextGenerationDataset",
-        "retriever": "sentence-transformers/all-MiniLM-L6-v2",
-        "model_name": "meta-llama/Llama-2-7b-hf",
-        "tokenizer_name": "meta-llama/Llama-2-7b-hf",
-        "resume": true,
+        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "tokenizer_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "resume": false,
         "checkpoint_dir": "./saved/arxiv_clm_4096_llama2_7b_hf_state_dict.pth"
-    },
-
-    "generate_options": {
-        "strategy": "beam",
-        "penalty_alpha": 0.6,
-        "num_beams": 2,
-        "temperature": 1.0,
-        "top_k": 50,
-        "top_p": 0.9,
-        "repetition_penalty": 1.0,
-        "length_penalty": 1.0,
-        "no_repeat_ngram_size": 0,
-        "do_sample": false,
-        "use_cache": true
     },
 
     "fine_tune_options": {
         "use_pretrained": true,
-        "generate_mode": true,
         "hub": "huggingface",
-        "lora": false,
-        "qlora": true,
-        "lora_rank": 8,
-        "lora_alpha": 32,
-        "lora_dropout": 0.1,
-        "task_type": "None",
-        "prompt_tuning": false,
-        "prompt_tuning_type": "P-TUNING",
-        "num_virtual_tokens": 2,
-        "virtual_token_dim": 768,
-        "prompt_encoder_hidden_size": 768,
-        "max_len": 4096,
+        "max_len": 1536,
         "layer_norm_eps": 1e-7,
         "attention_probs_dropout_prob": 0.1,
         "hidden_dropout_prob": 0.1,
         "init_weight": "kaiming_normal",
-        "initializer_range": 0.02
+        "initializer_range": 0.02,
+        "lora": false,
+        "qlora": false,
+        "prompt_tuning": false
     },
 
     "data_settings": {
@@ -65,7 +40,7 @@
     "optimizer_options": {
         "optimizer": "AdamW",
         "llrd": false,
-        "lr": 4e-4,
+        "lr": 2e-4,
         "weight_decay": 1e-2,
         "adam_epsilon": 1e-6,
         "use_bertadam": false,
@@ -88,13 +63,13 @@
     },
 
     "loss_options": {
-        "losses_fn": "CrossEntropyLoss",
+        "losses_fn": "ArcFace",
         "val_losses_fn": "CrossEntropyLoss",
         "reduction": "mean"
     },
 
     "metrics_options": {
-        "metrics": ["ppl", "accuracy"]
+        "metrics": ["accuracy", "f1-score"]
     },
 
     "common_settings": {

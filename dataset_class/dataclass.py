@@ -2,9 +2,9 @@ import torch
 import pandas as pd
 import configuration
 
-from torch.utils.data import Dataset
 from torch import Tensor
 from typing import Dict, List, Tuple
+from torch.utils.data import Dataset
 
 
 class PretrainDataset(Dataset):
@@ -66,12 +66,16 @@ class QuestionAnsweringDataset(Dataset):
         pass
 
 
-class TextSimilarityDataset(Dataset):
-    """ Pytorch Dataset Module for Text Similarity Task in fine-tuning
+class QuestionDocumentMatchingDataset(Dataset):
+    """ Pytorch Dataset Module for QuestionDocumentMatching Task in fine-tuning
+
+    Args:
+
+
     """
-    def __init__(self) -> None:
+    def __init__(self, df: pd.DataFrame) -> None:
         super().__init__()
-        pass
+        self.df = df
 
     def __len__(self) -> int:
         pass
