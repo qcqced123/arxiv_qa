@@ -1,13 +1,13 @@
 {
     "pipeline_setting": {
         "pipeline_type": "make",
-        "n_jobs": 4
-
+        "n_jobs": 4,
+        "question_generator": "gemini"
     },
 
     "generate_options": {
         "retriever": "sentence-transformers/all-MiniLM-L6-v2",
-        "model_name": "meta-llama/Meta-Llama-3-8B",
+        "model_name": "gemini-1.0-pro",
         "tokenizer_name": "meta-llama/Meta-Llama-3-8B",
         "max_len": 4096,
         "max_new_tokens": 512,

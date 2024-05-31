@@ -166,9 +166,31 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"
         df.to_csv(output_path, index=False)
 
-        modules = get_necessary_module(cfg)
-        tokenizer, model = modules['tokenizer'], modules['model']
-        questions = [generate_with_llama(cfg, tokenizer(row['doc'], return_tensors='pt').input_ids.to(cfg.device), tokenizer, model) for i, row in tqdm(df.iterrows(), total=len(df))]
+        # branch of question generation
+        # you can select the question generator by setting the cfg.question_generator
+        # you can choose the "gemini" or "llama" for generating the question
+        # when you select gemini: you can use the google gemini api for generating the question
+        # when you select llama: you can use the llama3-8b model on your own local environment
+        if cfg.question_generator == "gemini":
+            questions = [google_gemini_api(row['title'], row['doc'], cfg.model_name) for i, row in tqdm(df.iterrows(), total=len(df))]
+
+        elif cfg.question_generator == "llama":
+            questions = []
+            modules = get_necessary_module(cfg)
+            tokenizer, model = modules['tokenizer'], modules['model']
+            for i, row in tqdm(df.iterrows(), total=len(df)):
+                title, context = row['title'], row['doc']
+                prompt = f"""[title]\n{title}\n\n[context]\n{context}\n\n
+                        You're a question machine. Read the context given above and generate the right question.
+                        Questions should also be able to capture the features or characteristics of a given context.
+                        The purpose of asking you to create questions is to create a dataset of question-document pairs.
+                        Please create with purpose and generate creative, informative, and diverse questions.
+                        """
+                questions.append(
+                    generate_with_llama(cfg, tokenizer(prompt, return_tensors='pt').input_ids.to(cfg.device), tokenizer, model)
+                )
+
+        # branch merge point of question generation
         df['question'] = questions
 
         output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"

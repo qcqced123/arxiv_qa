@@ -185,3 +185,4 @@ class CFG:
 
     """ Pipeline Type: Make """
     n_jobs = 5
+    question_generator = 'gemini'
