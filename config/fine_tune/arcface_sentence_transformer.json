@@ -2,20 +2,20 @@
     "pipeline_setting": {
         "pipeline_type": "fine_tune",
         "name": "ArxivMetricLearning",
-        "trainer": "TextGenerationTuner",
+        "trainer": "QuestionDocumentMatchingTrainer",
         "loop": "train_loop",
-        "task": "CasualLanguageModel",
-        "dataset": "TextGenerationDataset",
+        "task": "QuestionDocumentMatchingModel",
+        "dataset": "QuestionDocumentMatchingDataset",
         "model_name": "sentence-transformers/all-MiniLM-L6-v2",
         "tokenizer_name": "sentence-transformers/all-MiniLM-L6-v2",
         "resume": false,
-        "checkpoint_dir": "./saved/arxiv_clm_4096_llama2_7b_hf_state_dict.pth"
+        "checkpoint_dir": "./saved/"
     },
 
     "fine_tune_options": {
         "use_pretrained": true,
         "hub": "huggingface",
-        "max_len": 1536,
+        "max_len": 2048,
         "layer_norm_eps": 1e-7,
         "attention_probs_dropout_prob": 0.1,
         "hidden_dropout_prob": 0.1,
@@ -33,7 +33,6 @@
         "epochs": 1,
         "batch_size": 8,
         "val_batch_size": 8,
-        "encoder_reparameterization_type": "LSTM",
         "val_check": 9999999
     },
 

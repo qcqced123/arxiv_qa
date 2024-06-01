@@ -1,7 +1,7 @@
 import emoji
 import torch
-import pandas as pd
 import numpy as np
+import pandas as pd
 import re, gc, pickle, json, os
 
 import configuration as configuration
@@ -213,26 +213,30 @@ def apply_preprocess(dataset: Dataset, function: Callable, batched: bool = True,
 
 
 def tokenizing(
-        cfg: configuration.CFG,
-        text: str,
-        padding: bool or str = 'max_length',
-        return_token_type_ids: bool = False
+    text: str,
+    cfg: configuration.CFG,
+    truncation: bool = False,
+    padding: bool or str = 'max_length',
+    add_special_tokens: bool = False,
+    return_token_type_ids: bool = False
 ) -> Dict[str, torch.Tensor]:
     """ Preprocess text for LLM Input, for common batch system
 
     Args:
         cfg: configuration.CFG, needed to load tokenizer from Huggingface AutoTokenizer
         text: text from dataframe or any other dataset, please pass str type
+        truncation: bool, default False, if you want to use truncation, set True
         padding: padding options, default 'max_length', if you want use smart batching, init this param to False
+        add_special_tokens: bool, default False, if you want to use special tokens, set True
         return_token_type_ids: bool, default False, if you want to use token_type_ids, set True
     """
     inputs = cfg.tokenizer.encode_plus(
         text,
-        max_length=cfg.max_len,
+        max_length=None,
+        truncation=truncation,
         padding=padding,
-        truncation=True,
         return_tensors=None,
-        add_special_tokens=False,  # lat we will add ourselves
+        add_special_tokens=add_special_tokens,  # lat we will add ourselves
         return_token_type_ids=return_token_type_ids,
     )
     for k, v in inputs.items():

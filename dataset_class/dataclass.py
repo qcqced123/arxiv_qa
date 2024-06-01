@@ -5,6 +5,7 @@ import configuration
 from torch import Tensor
 from typing import Dict, List, Tuple
 from torch.utils.data import Dataset
+from preprocessing import tokenizing, no_multi_spaces
 
 
 class PretrainDataset(Dataset):
@@ -67,18 +68,49 @@ class QuestionAnsweringDataset(Dataset):
 
 
 class QuestionDocumentMatchingDataset(Dataset):
-    """ Pytorch Dataset Module for QuestionDocumentMatching Task in fine-tuning
+    """ pytorch dataset module for QuestionDocumentMatching Task in metric learning such as SimCLR, ArcFace, MNRL
+
+    workflow:
+        1) load dataframe: question-document relation dataset
+        2) drop the empty rows, which is not containing the question
+        3) lower the text for the better performance
+        4) remove multi spaces
 
     Args:
+        df: pd.DataFrame, dataframe containing [paper_id, doc_id, doc, doc embedding, question]
+            (doc_id is role of label, indicating the question-document pair relationship_
 
-
+    Returns:
+        batch_inputs: Dict, dictionary containing the query and document inputs
     """
-    def __init__(self, df: pd.DataFrame) -> None:
+    def __init__(self, cfg: configuration.CFG, df: pd.DataFrame) -> None:
         super().__init__()
-        self.df = df
+        self.cfg = cfg
+        self.df = df[df['question'].notnull()]  # remove empty question rows
+        self.tokenizer = tokenizing
 
     def __len__(self) -> int:
-        pass
+        return len(self.df)
 
-    def __getitem__(self, item: int) -> Tuple[Tensor, Tensor]:
-        pass
+    def __getitem__(self, item: int) -> Dict[str, Tensor]:
+        batch_inputs = {
+            'query': self.df.at[item, 'question'],
+            'document': self.df.at[item, 'doc']
+        }
+
+        for key, text in batch_inputs.items():
+            text = no_multi_spaces(text.lower())
+            text = self.tokenizer(
+                text=text,
+                cfg=self.cfg,
+                truncation=False,
+                padding=False,
+                add_special_tokens=True,
+            )
+
+            for k, v in text.items():
+                text[k] = torch.as_tensor(v)
+
+            batch_inputs[key] = text
+
+        return batch_inputs

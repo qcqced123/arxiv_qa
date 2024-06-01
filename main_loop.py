@@ -148,29 +148,38 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     # need to abstract this branch
     # branch for calling pipeline that builds the document embedding db, q-doc dataset
     if pipeline_type == "make":
-        path_list = os.listdir(base_path)
 
-        # apply text chunking strategy from text_chunk module
-        # linear for-loop by pdf list
-        # multi-processing for-loop by pdf list
-        size = len(path_list)//cfg.n_jobs
-        chunked = [path_list[i:i+size] for i in range(0, len(path_list), size)]
-        df = pd.DataFrame(columns=['paper_id', 'doc_id', 'title', 'doc'])
+        # branch of getting elements from pdf files and making the document dataframe
+        # if configuration var state(cfg.work_flow_state) is "init", then make the document dataframe
+        # if configuration var state(cfg.work_flow_state) is "resume", then load the document dataframe
+        if cfg.work_flow_state == "init":
+            path_list = os.listdir(base_path)
 
-        with pool.Pool(processes=cfg.n_jobs) as p:
-            elements = p.map(make_loop, chunked)
+            # apply text chunking strategy from text_chunk module
+            # linear for-loop by pdf list
+            # multi-processing for-loop by pdf list
+            size = len(path_list)//cfg.n_jobs
+            chunked = [path_list[i:i+size] for i in range(0, len(path_list), size)]
+            df = pd.DataFrame(columns=['paper_id', 'doc_id', 'title', 'doc'])
 
-        for element in elements:
-            df = pd.concat([df, pd.DataFrame(element, columns=['paper_id', 'doc_id', 'title', 'doc'])], axis=0)
+            with pool.Pool(processes=cfg.n_jobs) as p:
+                elements = p.map(make_loop, chunked)
 
-        output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"
-        df.to_csv(output_path, index=False)
+            for element in elements:
+                df = pd.concat([df, pd.DataFrame(element, columns=['paper_id', 'doc_id', 'title', 'doc'])], axis=0)
+
+            output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"
+            df.to_csv(output_path, index=False)
+
+        elif cfg.work_flow_state == "resume":
+            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/total_paper_chunk.csv')
 
         # branch of question generation
-        # you can select the question generator by setting the cfg.question_generator
         # you can choose the "gemini" or "llama" for generating the question
+        # you can select the question generator by setting the cfg.question_generator
         # when you select gemini: you can use the google gemini api for generating the question
         # when you select llama: you can use the llama3-8b model on your own local environment
+        questions = None
         if cfg.question_generator == "gemini":
             questions = [google_gemini_api(row['title'], row['doc'], cfg.model_name) for i, row in tqdm(df.iterrows(), total=len(df))]
 
@@ -184,7 +193,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
                         You're a question machine. Read the context given above and generate the right question.
                         Questions should also be able to capture the features or characteristics of a given context.
                         The purpose of asking you to create questions is to create a dataset of question-document pairs.
-                        Please create with purpose and generate creative, informative, and diverse questions.
+                        Please create with purpose and generate creative, informative questions.
                         """
                 questions.append(
                     generate_with_llama(cfg, tokenizer(prompt, return_tensors='pt').input_ids.to(cfg.device), tokenizer, model)

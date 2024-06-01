@@ -1,17 +1,29 @@
 import os
+import time
+import random
 import pandas as pd
 import torch.nn as nn
 import google.generativeai as genai
-
 
 from tqdm.auto import tqdm
 from configuration import CFG
 from dotenv import load_dotenv
 from typing import List, Dict, Any
-from collections import defaultdict
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 load_dotenv()
+
+
+def get_random_sleep(ls: float, ms: float) -> None:
+    """ get random sleep time between 5 and 10 seconds
+
+    Args:
+        ls: least time to sleep this process
+        ms: max time to sleep this process
+    """
+    sleep_time = random.uniform(ls, ms)
+    time.sleep(sleep_time)
+    return
 
 
 def get_necessary_module(cfg: CFG) -> Dict[str, Any]:
@@ -36,7 +48,7 @@ def generate_with_llama(cfg: CFG, input_ids: List[int], tokenizer: AutoTokenizer
 
     Args:
         cfg (CFG): configuration object for the project
-        input_ids (List[int]): list of input ids for the model, already passing throug the tokenizer
+        input_ids (List[int]): list of input ids for the model, already passing through the tokenizer
         tokenizer (AutoTokenizer): default is llama3-8b tokenizer, for tokenizing the input text
         model (nn.Module): default is llama3-8b model, for generating the question
         temperature (float): default 0.0, the temperature value for the diversity of the output text
@@ -100,8 +112,11 @@ def google_gemini_api(title: str, context: str, foundation_model: str = 'gemini-
         Questions should also be able to capture the features or characteristics of a given context.
         The purpose of asking you to create questions is to create a dataset of question-document pairs.
         Please create with purpose and generate creative, informative, and diverse questions.
+        Do not return questions that are too similar to each other, or too general.
+        Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
+        If you want to ask multiple questions, please separate them with spaces without newlines.
         """
-
+        get_random_sleep(8, 10)  # for avoiding the "call api limit"
         response = model.generate_content(
             contents=prompt,
             generation_config=generation_config,
@@ -119,10 +134,3 @@ if __name__ == '__main__':
     questions = [google_gemini_api(row['title'], row['doc'])for i, row in tqdm(df.iterrows(), total=len(df))]
     df['question'] = questions
     df.to_csv('../dataset_class/datafolder/arxiv_qa/partition/test_1708.02901.csv', index=False)
-
-    # prompt = f"""[title]\n{title}\n\n[context]\n{context}\n\n
-    #             You're a question machine. Read the context given above and generate the right question.
-    #             Questions should also be able to capture the features or characteristics of a given context.
-    #             The purpose of asking you to create questions is to create a dataset of question-document pairs.
-    #             Please create with purpose and generate creative, informative, and diverse questions."""
-    #

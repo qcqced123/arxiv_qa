@@ -184,5 +184,6 @@ class CFG:
     use_cache: bool = True,
 
     """ Pipeline Type: Make """
+    work_flow_state = "resume"
     n_jobs = 5
     question_generator = 'gemini'
