@@ -1,6 +1,6 @@
 import torch
 import pandas as pd
-import configuration
+import configuration as configuration
 
 from torch import Tensor
 from typing import Dict, List, Tuple
@@ -36,35 +36,6 @@ class PretrainDataset(Dataset):
             # reduce memory usage by defending copying tensor
             batch_inputs[k] = torch.as_tensor(v[item]) if not self.is_valid else torch.as_tensor(v[item][0:2048])
         return batch_inputs
-
-
-class TextGenerationDataset(Dataset):
-    """ Pytorch Dataset Module for Text Generation Task in fine-tuning
-    """
-    def __init__(self) -> None:
-        super().__init__()
-        pass
-
-    def __len__(self) -> int:
-        pass
-
-    def __getitem__(self, item: int) -> Tuple[Tensor, Tensor]:
-        pass
-
-
-class QuestionAnsweringDataset(Dataset):
-    """ Pytorch Dataset Module for QuestionAnswering Task in fine-tuning
-    """
-
-    def __init__(self) -> None:
-        super().__init__()
-        pass
-
-    def __len__(self) -> int:
-        pass
-
-    def __getitem__(self, item: int) -> Tuple[Tensor, Tensor]:
-        pass
 
 
 class QuestionDocumentMatchingDataset(Dataset):
@@ -114,3 +85,4 @@ class QuestionDocumentMatchingDataset(Dataset):
             batch_inputs[key] = text
 
         return batch_inputs
+
