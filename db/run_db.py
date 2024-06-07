@@ -53,7 +53,7 @@ def encode_text(text: str, encoder: SentenceTransformer) -> Tensor:
     return:
         Tensor, encoded text
     """
-    return encoder.encode(text)
+    return encoder.encode(text, show_progress_bar=True)
 
 
 def encode_docs(df: pd.DataFrame, encoder: SentenceTransformer) -> pd.DataFrame:

@@ -4,6 +4,39 @@ from torch import Tensor
 from typing import List
 
 
+class SubSequenceGEMPooling(nn.Module):
+    """ Generalized Mean Pooling for Natural Language Processing
+    This class version of GEMPooling for NLP, Transfer from Computer Vision Task Code
+
+    Mean Pooling <= GEMPooling <= Max Pooling
+    Because of doing exponent to each token embeddings, GEMPooling is like as weight to more activation token
+
+    In original paper, they use p=3, but in this class, we use p=4 because torch doesn't support pow calculation
+    for negative value tensor, only for non-negative value in odd number exponent
+
+    If you want to use this class for MeanPooling, you can set p=1, default value of p is 1
+
+    In this Module, Query and Document have separate by sep token, we know their tensor index
+    So, we do not need to attention mask for making hidden state compression
+
+    Reference:
+        https://paperswithcode.com/method/generalized-mean-pooling
+    """
+    def __init__(self, auto_cfg) -> None:
+        super(SubSequenceGEMPooling, self).__init__()
+
+    @staticmethod
+    def forward(last_hidden_state: Tensor, p: float = 1) -> Tensor:
+        """ last_hidden_state.size: [1, cell_sequence, hidden_size]
+        1) Pow last_hidden_state with p and then take a averaging
+        2) pow sum_embeddings with 1/p
+        """
+        p_embeddings = torch.pow(last_hidden_state, p)
+        sum_embeddings = torch.mean(p_embeddings, dim=1)
+        gem_embeddings = torch.pow(sum_embeddings, 1. / p)
+        return gem_embeddings
+
+
 # WeightedLayerPooling for CLS token embedding Ver
 class CLSWeightedLayerPooling(nn.Module):
     """ For Weighted Layer Pooling Class, use CLS token embedding Ver

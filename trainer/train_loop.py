@@ -22,7 +22,6 @@ g.manual_seed(CFG.seed)
 
 def train_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearch) -> None:
     """ Base Trainer Loop Function
-
     1) Initialize Trainer Object
     2) Make Early Stopping Object
     3) Initialize Metric Checker

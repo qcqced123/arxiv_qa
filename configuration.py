@@ -33,7 +33,9 @@ class CFG:
     tokenizer_name = 'microsoft/deberta-v3-large'  # later, remove this line
     tokenizer = None
     task = 'MaskedLanguageModel'  # options: MaskedLanguageModel, CasualLanguageModel
+    objective_fn = "ArcFace"
     pooling = 'MeanPooling'
+    pow_value = 1
 
     """ Common Options """
     wandb = True

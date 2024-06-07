@@ -25,6 +25,8 @@ from model import mlm, clm, sbo
 
 from db.run_db import get_encoder, search_candidates
 from dataset_class.preprocessing import dataset_split, load_all_types_dataset
+
+from trainer.collator_fn import CollatorFunc
 from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler
 from trainer.trainer_utils import load_pretrained_weights, get_optimizer_grouped_parameters, get_scheduler
 
@@ -475,7 +477,10 @@ class TextGenerationTuner:
     """ Fine-tune class for Text Generation, Summarization
 
     Args:
-
+        cfg: configuration module, confriguration.py
+        generator: torch.Generator, for init pytorch random seed
+        is_train: bool, for setting train or validation mode
+        es: Elasticsearch, for searching the top-k nearest document in doc embedding db
     """
     def __init__(self, cfg: CFG, generator: torch.Generator, is_train: bool = True, es: Elasticsearch = None) -> None:
         self.es = es
@@ -592,15 +597,13 @@ class TextGenerationTuner:
             optimizer.zero_grad(set_to_none=True)
             inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k != 'labels'}
             labels = batch['labels'].to(self.cfg.device, non_blocking=True)
-            batch_size = labels.size(0)
 
             result = search_candidates(
                 query=inputs['input_ids'],
                 encoder=retriever,
                 es=self.es,
-                top_k=3
+                top_k=5
             )
-
             context = ''
             for i, res in enumerate(result):
                 curr = f"Title {i + 1}: " + res['_source']['title'] + "\n"
@@ -641,7 +644,6 @@ class TextGenerationTuner:
         output = model(labels)
         log_probs = self.log_probs_from_logit(output.logits[:, :-1, :], labels[:, 1:])  # rotate
         seq_log_prob = torch.sum(log_probs[:, input_len:])  # except last index token for calculating prob
-
         return seq_log_prob.cpu().numpy()
 
     @torch.no_grad()
@@ -665,11 +667,7 @@ class TextGenerationTuner:
         use_cache: bool = True,
     ) -> List[Dict]:
         """ method for making the answer from the given prompt (context + query) """
-        # prompt = f"[query]\n{query}\n\n[context]\n{context}\n\n"
-        # prompt = f"{context}"
-        prompt = f"[context]\n{context}\n\n[query]\n{query}\n\n"
-        # prompt = f"{query}"
-
+        prompt = f"[context]\n{context}\n\n[query]\n{query}"
         input_ids = self.tokenizer(prompt, return_tensors='pt')['input_ids'].to(self.cfg.device)
         output = model.model.generate(
             input_ids=input_ids,
@@ -686,13 +684,104 @@ class TextGenerationTuner:
             do_sample=do_sample,
             use_cache=use_cache,
         )
-        # logp = self.sequence_probs(
-        #     model=model,
-        #     labels=output,
-        #     input_len=len(input_ids[0])
-        # )
-        # print(f"Decoding Probability: {logp}")
         return self.tokenizer.decode(output[0], skip_special_tokens=True)
+
+
+class MetricLearningTuner:
+    """ trainer class for conducting metric learning objective, such as contrastive learning, triplet loss, etc
+
+    Args:
+    """
+    def __init__(self, cfg: CFG, generator: torch.Generator) -> None:
+        self.cfg = cfg
+        self.generator = generator
+        self.model_name = self.cfg.model_name
+        self.tokenizer = self.cfg.tokenizer
+        self.metric_list = self.cfg.metrics
+        self.df = load_all_types_dataset(
+            f'./dataset_class/datafolder/arxiv_qa/total/metric_learning_total_paper_chunk.csv'
+        )
+
+    def make_batch(self):
+        train, valid = dataset_split(self.cfg, self.df)
+
+        train_dataset = getattr(dataset_class, self.cfg.dataset)(train)
+        valid_dataset = getattr(dataset_class, self.cfg.dataset)(valid)
+
+        collate_fn = CollatorFunc()
+        loader_train = get_dataloader(
+            cfg=self.cfg,
+            dataset=train_dataset,
+            collate_fn=collate_fn,
+            generator=self.generator
+        )
+        loader_valid = get_dataloader(
+            cfg=self.cfg,
+            dataset=valid_dataset,
+            collate_fn=collate_fn,
+            generator=self.generator,
+            shuffle=False,
+            drop_last=False
+        )
+        return loader_train, loader_valid, len(train)
+
+    def model_setting(self, len_train: int):
+        model = getattr(task, self.cfg.task)(self.cfg)
+
+        if self.cfg.resume:
+            model.load_state_dict(
+                torch.load(self.cfg.checkpoint_dir + self.cfg.state_dict),
+                strict=False
+            )
+        model.to(self.cfg.device)
+
+        criterion = getattr(loss, self.cfg.loss_fn)(self.cfg.reduction)
+        val_criterion = getattr(loss, self.cfg.val_loss_fn)(self.cfg.reduction)
+        val_metric_list = [getattr(metric, f'{metrics}') for metrics in self.metric_list]
+
+        grouped_optimizer_params = get_optimizer_grouped_parameters(
+            model,
+            self.cfg.layerwise_lr,
+            self.cfg.weight_decay,
+            self.cfg.layerwise_lr_decay
+        )
+
+        optimizer = getattr(transformers, self.cfg.optimizer)(
+            params=grouped_optimizer_params,
+            lr=self.cfg.layerwise_lr,
+            betas=self.cfg.betas,
+            eps=self.cfg.adam_epsilon,
+            weight_decay=self.cfg.weight_decay,
+            correct_bias=not self.cfg.use_bertadam
+        )
+
+        lr_scheduler = get_scheduler(self.cfg, optimizer, len_train)
+
+        # init SWA Module
+        swa_model, swa_scheduler = None, None
+        if self.cfg.swa:
+            swa_model = AveragedModel(model)
+            swa_scheduler = get_swa_scheduler(self.cfg, optimizer)
+
+        # init AWP Module
+        awp = None
+        if self.cfg.awp:
+            awp = AWP(
+                model,
+                criterion,
+                optimizer,
+                self.cfg.awp,
+                adv_lr=self.cfg.awp_lr,
+                adv_eps=self.cfg.awp_eps
+            )
+        return model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
+
+    def train_val_fn(self):
+        losses = AverageMeter()
+        scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
+
+    def valid_fn(self):
+        pass
 
 
 class SequenceClassificationTuner:

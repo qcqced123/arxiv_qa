@@ -1083,3 +1083,4 @@ cython_debug/
 *.pdf
 !/test.ipynb
 *.zip
+*.ipynb

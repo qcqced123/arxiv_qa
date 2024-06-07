@@ -3,11 +3,11 @@
         "pipeline_type": "make",
         "work_flow_state": "resume",
         "n_jobs": 4,
-        "question_generator": "gemini"
+        "question_generator": "llama"
     },
 
     "generate_options": {
-        "model_name": "gemini-1.5-flash",
+        "model_name": "meta-llama/Meta-Llama-3-8B",
         "tokenizer_name": "meta-llama/Meta-Llama-3-8B",
         "max_len": 4096,
         "max_new_tokens": 512,

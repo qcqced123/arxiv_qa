@@ -6,8 +6,11 @@
         "loop": "train_loop",
         "task": "QuestionDocumentMatchingModel",
         "dataset": "QuestionDocumentMatchingDataset",
-        "model_name": "sentence-transformers/all-MiniLM-L6-v2",
-        "tokenizer_name": "sentence-transformers/all-MiniLM-L6-v2",
+        "model_name": "allenai/longformer-base-4096",
+        "tokenizer_name": "allenai/longformer-base-4096",
+        "objective_fn": "ArcFace",
+        "pooling": "SubSequenceGEMPooling",
+        "pow_value": 1,
         "resume": false,
         "checkpoint_dir": "./saved/"
     },
@@ -22,7 +25,7 @@
         "init_weight": "kaiming_normal",
         "initializer_range": 0.02,
         "lora": false,
-        "qlora": false,
+        "qlora": true,
         "prompt_tuning": false
     },
 
@@ -39,7 +42,8 @@
     "optimizer_options": {
         "optimizer": "AdamW",
         "llrd": false,
-        "lr": 2e-4,
+        "layerwise_lr": 2e-4,
+        "layerwise_lr_decay": 0.95,
         "weight_decay": 1e-2,
         "adam_epsilon": 1e-6,
         "use_bertadam": false,
@@ -62,7 +66,7 @@
     },
 
     "loss_options": {
-        "losses_fn": "ArcFace",
+        "losses_fn": "CrossEntropyLoss",
         "val_losses_fn": "CrossEntropyLoss",
         "reduction": "mean"
     },

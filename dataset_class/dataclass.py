@@ -39,7 +39,8 @@ class PretrainDataset(Dataset):
 
 
 class QuestionDocumentMatchingDataset(Dataset):
-    """ pytorch dataset module for QuestionDocumentMatching Task in metric learning such as SimCLR, ArcFace, MNRL
+    """ pytorch dataset module for QuestionDocumentMatching Task in metric learning
+    such as contrastive loss, arcface, multiple-negative ranking loss
 
     workflow:
         1) load dataframe: question-document relation dataset
@@ -49,7 +50,7 @@ class QuestionDocumentMatchingDataset(Dataset):
 
     Args:
         df: pd.DataFrame, dataframe containing [paper_id, doc_id, doc, doc embedding, question]
-            (doc_id is role of label, indicating the question-document pair relationship_
+            (label is role of label, indicating the question-document pair relationship)
 
     Returns:
         batch_inputs: Dict, dictionary containing the query and document inputs
@@ -57,32 +58,46 @@ class QuestionDocumentMatchingDataset(Dataset):
     def __init__(self, cfg: configuration.CFG, df: pd.DataFrame) -> None:
         super().__init__()
         self.cfg = cfg
-        self.df = df[df['question'].notnull()]  # remove empty question rows
         self.tokenizer = tokenizing
+        self.df = df[df['question'].notnull()]  # remove empty question rows
+        self.objective_fn = self.cfg.objective_fn
 
     def __len__(self) -> int:
         return len(self.df)
 
     def __getitem__(self, item: int) -> Dict[str, Tensor]:
-        batch_inputs = {
-            'query': self.df.at[item, 'question'],
-            'document': self.df.at[item, 'doc']
-        }
+        cls, sep = self.cfg.tokenizer.cls_token, self.cfg.tokenizer.sep_token
 
-        for key, text in batch_inputs.items():
-            text = no_multi_spaces(text.lower())
-            text = self.tokenizer(
-                text=text,
+        query, document = no_multi_spaces(self.df.at[item, 'question']), no_multi_spaces(self.df.at[item, 'doc'])
+        prompt = f"[{cls}] " + query + f" [{sep}] " + document + f" [{sep}]"
+
+        batches = self.tokenizer(
+                text=prompt,
                 cfg=self.cfg,
                 truncation=False,
                 padding=False,
-                add_special_tokens=True,
+                add_special_tokens=False,
             )
 
-            for k, v in text.items():
-                text[k] = torch.as_tensor(v)
+        # for input_ids, attention_mask
+        for k, v in batches.items():
+            batches[k] = torch.as_tensor(v)
 
-            batch_inputs[key] = text
+        # find sep token index
+        counter = 0
+        q_i, d_i = None, None
+        for i, v in enumerate(batches['input_ids']):
+            if not counter and v == self.cfg.tokenizer.sep_token_id:
+                q_i = i
+                counter += 1
 
-        return batch_inputs
+            elif counter and v == self.cfg.tokenizer.sep_token_id:
+                d_i = i
+                break
+
+        batches['query_index'] = torch.as_tensor(q_i)
+        batches['document_index'] = torch.as_tensor(d_i)
+        batches['labels'] = torch.as_tensor(self.df.at[item, 'label'])
+        return batches
+
 

@@ -172,7 +172,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             df.to_csv(output_path, index=False)
 
         elif cfg.work_flow_state == "resume":
-            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/total_paper_chunk.csv')
+            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/metric_learning_total_paper_chunk.csv')
 
         # branch of question generation
         # you can choose the "gemini" or "llama" for generating the question
@@ -193,8 +193,10 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
                         You're a question machine. Read the context given above and generate the right question.
                         Questions should also be able to capture the features or characteristics of a given context.
                         The purpose of asking you to create questions is to create a dataset of question-document pairs.
-                        Please create with purpose and generate creative, informative questions.
-                        """
+                        Please create with purpose and generate creative, informative, and diverse questions.
+                        Do not return questions that are too similar to each other, or too general.
+                        Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
+                        If you want to ask multiple questions, please separate them with spaces without newlines."""
                 questions.append(
                     generate_with_llama(cfg, tokenizer(prompt, return_tensors='pt').input_ids.to(cfg.device), tokenizer, model)
                 )

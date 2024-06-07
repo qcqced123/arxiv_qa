@@ -3,7 +3,7 @@ import torch.nn as nn
 import model.pooling as pooling
 
 from torch import Tensor
-from typing import List, Dict
+from typing import List, Dict, Tuple
 
 from model.mlm import MLMHead
 from model.clm import CLMHead
@@ -123,15 +123,15 @@ class SentimentAnalysis(nn.Module, AbstractTask):
             - ASAP, We make normalizing function for target labels range 1 to 5 rating
     """
     def __init__(self, cfg: CFG) -> None:
-
         super(SentimentAnalysis, self).__init__()
         self.cfg = cfg
         self.components = self.select_pt_model()
-        self.auto_cfg = self.components['plm_config']
         self.model = self.components['plm']
+        self.auto_cfg = self.components['plm_config']
         self.prompt_encoder = self.components['prompt_encoder']
 
-        self.model.resize_token_embeddings(len(self.cfg.tokenizer))
+        # self.model.resize_token_embeddings(len(self.cfg.tokenizer))
+
         self.pooling = getattr(pooling, self.cfg.pooling)(self.cfg)
         self.fc = nn.Linear(
             self.auto_cfg.hidden_size,
@@ -166,3 +166,67 @@ class SentimentAnalysis(nn.Module, AbstractTask):
         embedding = self.pooling(features, inputs['attention_mask'])
         logit = self.fc(embedding)
         return logit
+
+
+class MetricLearningModel(nn.Module, AbstractTask):
+    """ Custom Model for Metric Learning Task, which is used for learning similarity between two input sentences
+    We use this model for learning similarity between two input sentences, which is used for semantic search
+
+    Args:
+        cfg: configuration.CFG
+    """
+    def __init__(self, cfg: CFG) -> None:
+        super(MetricLearningModel, self).__init__()
+        self.cfg = cfg
+        self.components = self.select_pt_model()
+        self.auto_cfg = self.components['plm_config']
+        self.model = self.components['plm']
+        self.prompt_encoder = self.components['prompt_encoder']
+
+        self.model.resize_token_embeddings(len(self.cfg.tokenizer))
+        self.pooling = getattr(pooling, self.cfg.pooling)(self.cfg)
+
+        if self.cfg.freeze:
+            freeze(self.model.embeddings)
+            freeze(self.model.encoder.layer[:self.cfg.num_freeze])
+
+        if self.cfg.reinit:
+            reinit_topk(self.model, self.cfg.num_reinit)
+
+        if self.cfg.gradient_checkpoint:
+            self.model.gradient_checkpointing_enable()
+
+    def feature(self, inputs: Dict):
+        outputs = self.model(**inputs)
+        return outputs
+
+    def forward(self, inputs: Dict, query_index: int, context_index: int) -> Tuple[Tensor, Tensor]:
+        """
+        Args:
+            inputs: Dict, input dictionary for forward function
+            query_index: int, index of query token in input_ids
+            context_index: int, index of context token in input_ids
+
+        Returns:
+            query_h: Tensor, embedding of query token
+            context_h: Tensor, embedding of context token
+        """
+        h = self.feature(inputs)
+        features = h.last_hidden_state
+
+        if self.cfg.pooling == 'WeightedLayerPooling':  # using all encoder layer's output
+            features = h.hidden_states
+
+        query_h = self.pooling(
+            last_hidden_state=features[:, 1:query_index, :],
+            p=self.cfg.pow_value
+        )
+
+        context_h = self.pooling(
+            last_hidden_state=features[:, query_index+1:context_index, :],
+            p=self.cfg.pow_value
+        )
+        return query_h, context_h
+
+
+

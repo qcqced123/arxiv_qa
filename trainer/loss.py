@@ -266,8 +266,7 @@ class BatchDotProductContrastiveLoss(nn.Module):
 
 
 class ArcFace(nn.Module):
-    """
-    ArcFace Pytorch Implementation
+    """ArcFace Pytorch Implementation
 
     Args:
         dim_model: size of hidden states(latent vector)
@@ -276,16 +275,16 @@ class ArcFace(nn.Module):
         m: Additive Angular Margin Penalty
 
     References:
-        https://github.com/wujiyang/Face_Pytorch/blob/master/margin/ArcMarginProduct.py
         https://arxiv.org/abs/1801.07698
+        https://github.com/wujiyang/Face_Pytorch/blob/master/margin/ArcMarginProduct.py
     """
-    def __init__(self, dim_model: int, num_classes: int, s: int = 30.0, m: int = 0.50) -> None:
+    def __init__(self, dim_model: int = 768, num_classes: int = 10, s: int = 30.0, m: int = 0.50) -> None:
         super(ArcFace, self).__init__()
         self.dim_model = dim_model
         self.num_classes = num_classes
         self.s = s
         self.m = m
-        self.w = nn.Parameter(torch.FloatTensor(num_classes, dim_model))
+        self.w = nn.Parameter(torch.FloatTensor(dim_model, num_classes))
         nn.init.kaiming_uniform_(self.w)  # same as nn.Linear
 
         self.cos_m = math.cos(self.m)
@@ -294,26 +293,32 @@ class ArcFace(nn.Module):
         self.mm = math.sin(math.pi - m) * m  # for taylor series
 
     def forward(self, inputs: Tensor, labels: Tensor) -> Tensor:
-        cosine = torch.matmul(F.normalize(self.w), F.normalize(inputs))
+        """
+        Args:
+            inputs: Tensor, compressed hidden states from model's last encoder layer
+            labels: Tensor, target labels for training
+        """
+        cosine = torch.matmul(F.normalize(inputs), F.normalize(self.w))
         sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(0, 1))
         z = cosine*self.cos_m - sine*self.sin_m
         z = torch.where(cosine > self.th, z, cosine - self.mm)
         one_hot = torch.zeros(cosine.size(), device='cuda')
         one_hot.scatter_(1, labels.view(-1, 1).long(), 1)
-        loss = (one_hot * z) + ((1.0 - one_hot) * cosine)
-        loss *= self.s
-        return loss
+        output = (one_hot * z) + ((1.0 - one_hot) * cosine)
+        output *= self.s
+        return output
 
 
 # Multiple Negative Ranking Loss, source code from UKPLab
 class MultipleNegativeRankingLoss(nn.Module):
-    """
-    Multiple Negative Ranking Loss (MNRL) for Dictionary Wise Pipeline, This class has one change point
+    """Multiple Negative Ranking Loss (MNRL) for Dictionary Wise Pipeline, This class has one change point
     main concept is same as contrastive loss, but it can be useful when label data have only positive value
     if you set more batch size, you can get more negative pairs for each anchor & positive pair
+
     Change Point:
         In original code & paper, they set label from range(len()), This mean that not needed to use label feature
         But in our case, we need to use label feature, so we change label from range(len()) to give label feature
+
     Args:
         scale: output of similarity function is multiplied by this value
         similarity_fct: standard of distance metrics, default cosine similarity
@@ -324,11 +329,6 @@ class MultipleNegativeRankingLoss(nn.Module):
         InputExample(texts=['Anchor 2', 'Positive 2'])]
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=32)
         train_loss = losses.MultipleNegativesRankingLoss(model=model)
-    Warnings:
-        class param 'similarity_fct' is init with function 'cos_sim' in sentence_transformers.util
-        util.cos_sim has not data checker like as torch.nn.functional.CosineSimilarity
-        we add filter for this problem, but you must check your data before use this class
-        if you use torch.cuda.amp, you must use eps == 1e-4
 
     Reference:
         https://arxiv.org/pdf/1705.00652.pdf
