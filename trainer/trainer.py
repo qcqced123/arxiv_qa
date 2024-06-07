@@ -650,10 +650,11 @@ class TextGenerationTuner:
     def inference(
         self,
         model: nn.Module,
-        query: str,
-        context: str,
         max_new_tokens: int,
         max_length: int,
+        prompt: str = None,
+        query: str = None,
+        context: str = None,
         strategy: str = None,
         penalty_alpha: float = None,
         num_beams: int = None,
@@ -667,7 +668,7 @@ class TextGenerationTuner:
         use_cache: bool = True,
     ) -> List[Dict]:
         """ method for making the answer from the given prompt (context + query) """
-        prompt = f"[context]\n{context}\n\n[query]\n{query}"
+        prompt = f"[context]\n{context}\n\n[query]\n{query}" if prompt is None else prompt
         input_ids = self.tokenizer(prompt, return_tensors='pt')['input_ids'].to(self.cfg.device)
         output = model.model.generate(
             input_ids=input_ids,

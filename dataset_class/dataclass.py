@@ -5,7 +5,7 @@ import configuration as configuration
 from torch import Tensor
 from typing import Dict, List, Tuple
 from torch.utils.data import Dataset
-from preprocessing import tokenizing, no_multi_spaces
+from dataset_class.preprocessing import tokenizing, no_multi_spaces
 
 
 class PretrainDataset(Dataset):

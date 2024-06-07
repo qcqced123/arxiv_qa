@@ -1,5 +1,6 @@
 import os
 import time
+import torch
 import random
 import pandas as pd
 import torch.nn as nn
@@ -9,7 +10,10 @@ from tqdm.auto import tqdm
 from configuration import CFG
 from dotenv import load_dotenv
 from typing import List, Dict, Any
+from elasticsearch import Elasticsearch
 from transformers import AutoModelForCausalLM, AutoTokenizer
+
+from trainer.trainer import TextGenerationTuner
 
 load_dotenv()
 
@@ -38,6 +42,30 @@ def get_necessary_module(cfg: CFG) -> Dict[str, Any]:
     return {
         'tokenizer': AutoTokenizer.from_pretrained(cfg.model_name),
         'model': AutoModelForCausalLM.from_pretrained(cfg.model_name).to(cfg.device)
+    }
+
+
+def get_necessary_module_for_generate_with_llama(cfg: CFG, es: Elasticsearch, g: torch.Generator) -> Dict[str, Any]:
+    """ function for getting necessary module for the project
+    Args:
+        cfg (CFG): configuration object for the project
+        es (Elasticsearch): elasticsearch object for the project
+        g (torch.Generator): torch.Generator object for the project
+
+    Returns:
+        Dict[str, Any]: dictionary object for the necessary module
+    """
+    tuner = TextGenerationTuner(
+        cfg=cfg,
+        generator=g,
+        is_train=False,
+        es=es
+    )
+    _, generator, *_ = tuner.model_setting()
+    return {
+        'tokenizer': cfg.tokenizer,
+        'tuner': tuner,
+        'generator': generator
     }
 
 

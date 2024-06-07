@@ -19,7 +19,7 @@ from configuration import CFG
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
-from generate_question.generate_question import get_necessary_module, generate_with_llama, google_gemini_api
+from generate_question.generate_question import get_necessary_module_for_generate_with_llama, generate_with_llama, google_gemini_api
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -172,7 +172,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             df.to_csv(output_path, index=False)
 
         elif cfg.work_flow_state == "resume":
-            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/metric_learning_total_paper_chunk.csv')
+            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/metric_learning_total_paper_chunk.csv')[0:10]
 
         # branch of question generation
         # you can choose the "gemini" or "llama" for generating the question
@@ -185,8 +185,8 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 
         elif cfg.question_generator == "llama":
             questions = []
-            modules = get_necessary_module(cfg)
-            tokenizer, model = modules['tokenizer'], modules['model']
+            modules = get_necessary_module_for_generate_with_llama(cfg, es, g)
+            tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
             for i, row in tqdm(df.iterrows(), total=len(df)):
                 title, context = row['title'], row['doc']
                 prompt = f"""[title]\n{title}\n\n[context]\n{context}\n\n
@@ -198,13 +198,27 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
                         Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
                         If you want to ask multiple questions, please separate them with spaces without newlines."""
                 questions.append(
-                    generate_with_llama(cfg, tokenizer(prompt, return_tensors='pt').input_ids.to(cfg.device), tokenizer, model)
+                    tuner.inference(
+                        model=generator,
+                        max_new_tokens=cfg.max_new_tokens,
+                        max_length=cfg.max_len,
+                        prompt=prompt,
+                        penalty_alpha=cfg.penalty_alpha,
+                        num_beams=cfg.num_beams,
+                        temperature=cfg.temperature,
+                        top_k=cfg.top_k,
+                        top_p=cfg.top_p,
+                        repetition_penalty=cfg.repetition_penalty,
+                        length_penalty=cfg.length_penalty,
+                        do_sample=cfg.do_sample,
+                        use_cache=cfg.use_cache
+                    )
                 )
 
         # branch merge point of question generation
         df['question'] = questions
 
-        output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"
+        output_path = f"dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db.csv"
         df.to_csv(output_path, index=False)
 
     # branch for calling pipeline that inserts the document embedding into the elastic search engine
