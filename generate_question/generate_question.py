@@ -45,7 +45,7 @@ def get_necessary_module(cfg: CFG) -> Dict[str, Any]:
     }
 
 
-def get_necessary_module_for_generate_with_llama(cfg: CFG, es: Elasticsearch, g: torch.Generator) -> Dict[str, Any]:
+def get_necessary_module_for_generation_in_local(cfg: CFG, es: Elasticsearch, g: torch.Generator) -> Dict[str, Any]:
     """ function for getting necessary module for the project
     Args:
         cfg (CFG): configuration object for the project
@@ -135,14 +135,14 @@ def google_gemini_api(title: str, context: str, foundation_model: str = 'gemini-
 
     datasets = ''
     try:
-        prompt = f"""[title]\n{title}\n\n[context]\n{context}\n\n
-        You're a question machine. Read the context given above and generate the right question.
-        Questions should also be able to capture the features or characteristics of a given context.
-        The purpose of asking you to create questions is to create a dataset of question-document pairs.
-        Please create with purpose and generate creative, informative, and diverse questions.
-        Do not return questions that are too similar to each other, or too general.
-        Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
-        If you want to ask multiple questions, please separate them with spaces without newlines.
+        prompt = f"""title:{title}\ncontext:{context}\n\n
+        You're a question machine. Read the title and context given above and generate the right question based on given context. Here are some rules for generating the questions:
+        1. Questions should also be able to capture the features or characteristics of a given context.
+        2. The purpose of asking you to create questions is to create a dataset of question-document pairs.
+        3. Please create with purpose and generate creative, informative, and diverse questions.
+        4. Do not return questions that are too similar to each other, or too general.
+        5. Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
+        6. If you want to ask multiple questions, please separate them with spaces without newlines.
         """
         get_random_sleep(8, 10)  # for avoiding the "call api limit"
         response = model.generate_content(

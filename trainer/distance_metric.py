@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
 from torch import Tensor
 
 
@@ -26,7 +27,7 @@ class SelectDistances(nn.Module):
         sim_mt = torch.mm(a_norm, b_norm.transpose(0, 1))
         return sim_mt
 
-    def select_distance(self, x: Tensor, y: Tensor) -> Tensor:
+    def forward(self, x: Tensor, y: Tensor) -> Tensor:
         if self.metrics == 'cosine':
             distance_metric = 1 - self.sim_matrix(x, y)  # Cosine Distance
         elif self.metrics == 'euclidean':

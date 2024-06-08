@@ -1,26 +1,38 @@
 {
     "pipeline_setting": {
         "pipeline_type": "inference",
+        "resume": false,
         "task": "CasualLanguageModel",
-        "retriever": "sentence-transformers/all-MiniLM-L6-v2",
-        "model_name": "meta-llama/Llama-2-7b-hf",
-        "tokenizer_name": "meta-llama/Llama-2-7b-hf",
-        "resume": true,
         "checkpoint_dir": "./saved/arxiv_clm_4096_llama2_7b_hf_state_dict.pth"
     },
 
+    "retriever_options": {
+        "retriever": "sentence-transformers/all-MiniLM-L6-v2",
+        "max_len": 512,
+        "batch_size": 32,
+        "num_workers": 4,
+        "use_gpu": true,
+        "gpu_id": 0,
+        "device": "cuda",
+        "cache_dir": "./cache"
+    },
+
     "generate_options": {
-        "max_new_tokens": 512,
+        "model_name": "microsoft/Phi-3-mini-128k-instruct",
+        "tokenizer_name": "microsoft/Phi-3-mini-128k-instruct",
+        "max_len": 131072,
+        "max_new_tokens": 1024,
+        "return_full_text": false,
         "strategy": "beam",
-        "penalty_alpha": 0.6,
-        "num_beams": 2,
-        "temperature": 1.0,
-        "top_k": 50,
-        "top_p": 1,
-        "repetition_penalty": 2.0,
-        "length_penalty": 1.0,
-        "no_repeat_ngram_size": 2,
-        "do_sample": false,
+        "num_beams": 5,
+        "temperature": 0.7,
+        "top_k": 100,
+        "top_p": 0.9,
+        "penalty_alpha": 1.0,
+        "repetition_penalty": 1.0,
+        "length_penalty": 2.0,
+        "no_repeat_ngram_size": 4,
+        "do_sample": true,
         "use_cache": true
     },
 
@@ -28,8 +40,9 @@
         "use_pretrained": true,
         "generate_mode": true,
         "hub": "huggingface",
+        "quantization": true,
         "lora": false,
-        "qlora": true,
+        "qlora": false,
         "lora_rank": 8,
         "lora_alpha": 32,
         "lora_dropout": 0.1,
@@ -39,20 +52,11 @@
         "num_virtual_tokens": 2,
         "virtual_token_dim": 768,
         "prompt_encoder_hidden_size": 768,
-        "max_len": 4096,
         "layer_norm_eps": 1e-7,
         "attention_probs_dropout_prob": 0.1,
         "hidden_dropout_prob": 0.1,
         "init_weight": "kaiming_normal",
         "initializer_range": 0.02
-    },
-
-    "gradient_settings": {
-        "amp_scaler": true,
-        "gradient_checkpoint": true,
-        "clipping_grad": true,
-        "n_gradient_accumulation_steps": 1,
-        "max_grad_norm": 10
     },
 
     "common_settings": {

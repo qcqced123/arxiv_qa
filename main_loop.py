@@ -19,7 +19,7 @@ from configuration import CFG
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
-from generate_question.generate_question import get_necessary_module_for_generate_with_llama, generate_with_llama, google_gemini_api
+from generate_question.generate_question import get_necessary_module_for_generation_in_local, generate_with_llama, google_gemini_api
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -99,7 +99,8 @@ def make_loop(path_list: List[str]) -> List:
 
 
 def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
-    """ main loop function for running the engine
+    """ interface function of main application (main loop function)
+    you can choose the pipeline type by setting the pipeline type var
 
     workflow:
         1) login to huggingface hub
@@ -117,7 +118,9 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
                 => this process will be done by multi-processing
 
             - make the document dataframe for document embedding db
-            - generate the question data by using Google Gemini API, Llama3-8b model
+            - generate the question data by using any generator llm such as
+              (microsoft/Phi-3-mini-128k-instruct, meta-llama2-7b-hf, google-gemini-1.5-flash)
+
             - insert final document dataframe into the MySQL DB Server
 
         # CLI argument signature: "insert"
@@ -136,7 +139,6 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             - search the candidates from the document embedding db
 
         7) run the text generation tuner for generating the answer for the input query
-
     """
     # login_to_huggingface()
     config_path = f'config/{pipeline_type}/{model_config}.json'
@@ -175,46 +177,40 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/metric_learning_total_paper_chunk.csv')[0:10]
 
         # branch of question generation
-        # you can choose the "gemini" or "llama" for generating the question
+        # you can choose any other generator llm in huggingface model hub (currently google gemini api does not support)
         # you can select the question generator by setting the cfg.question_generator
-        # when you select gemini: you can use the google gemini api for generating the question
-        # when you select llama: you can use the llama3-8b model on your own local environment
-        questions = None
-        if cfg.question_generator == "gemini":
-            questions = [google_gemini_api(row['title'], row['doc'], cfg.model_name) for i, row in tqdm(df.iterrows(), total=len(df))]
+        # default setting is microsoft/Phi-3-mini-128k-instruct
+        questions = []
+        modules = get_necessary_module_for_generation_in_local(cfg, es, g)
+        tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
+        for i, row in tqdm(df.iterrows(), total=len(df)):
+            title, context = row['title'], row['doc']
+            prompt = f"""title:{title}\ncontext:{context}\n\n
+                    You're a question machine. Read the given title and context above and generate the right question based on given context. Here are some rules for generating the questions:
+                    1. Questions should also be able to capture the features or characteristics of a given context.
+                    2. The purpose of asking you to create questions is to create a dataset of question-document pairs.
+                    3. Please create with purpose and generate creative, informative, and diverse questions.
+                    4. Do not return questions that are too similar to each other, or too general.
+                    5. Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
+                    6. If you want to ask multiple questions, please separate them with spaces without newlines."""
 
-        elif cfg.question_generator == "llama":
-            questions = []
-            modules = get_necessary_module_for_generate_with_llama(cfg, es, g)
-            tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
-            for i, row in tqdm(df.iterrows(), total=len(df)):
-                title, context = row['title'], row['doc']
-                prompt = f"""[title]\n{title}\n\n[context]\n{context}\n\n
-                        You're a question machine. Read the context given above and generate the right question.
-                        Questions should also be able to capture the features or characteristics of a given context.
-                        The purpose of asking you to create questions is to create a dataset of question-document pairs.
-                        Please create with purpose and generate creative, informative, and diverse questions.
-                        Do not return questions that are too similar to each other, or too general.
-                        Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
-                        If you want to ask multiple questions, please separate them with spaces without newlines."""
-                questions.append(
-                    tuner.inference(
-                        model=generator,
-                        max_new_tokens=cfg.max_new_tokens,
-                        max_length=cfg.max_len,
-                        prompt=prompt,
-                        penalty_alpha=cfg.penalty_alpha,
-                        num_beams=cfg.num_beams,
-                        temperature=cfg.temperature,
-                        top_k=cfg.top_k,
-                        top_p=cfg.top_p,
-                        repetition_penalty=cfg.repetition_penalty,
-                        length_penalty=cfg.length_penalty,
-                        do_sample=cfg.do_sample,
-                        use_cache=cfg.use_cache
-                    )
+            questions.append(
+                tuner.inference(
+                    model=generator,
+                    max_new_tokens=cfg.max_new_tokens,
+                    max_length=cfg.max_len,
+                    prompt=prompt,
+                    penalty_alpha=cfg.penalty_alpha,
+                    num_beams=cfg.num_beams,
+                    temperature=cfg.temperature,
+                    top_k=cfg.top_k,
+                    top_p=cfg.top_p,
+                    repetition_penalty=cfg.repetition_penalty,
+                    length_penalty=cfg.length_penalty,
+                    do_sample=cfg.do_sample,
+                    use_cache=cfg.use_cache
                 )
-
+            )
         # branch merge point of question generation
         df['question'] = questions
 

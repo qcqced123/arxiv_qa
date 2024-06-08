@@ -109,7 +109,7 @@ class AbstractTask:
         model = None,
         bit_config = None
         prompt_encoder = None
-        if self.cfg.qlora:
+        if self.cfg.quantization or self.cfg.qlora:
             bit_config = BitsAndBytesConfig(
                 load_in_4bit=True,
                 bnb_4bit_quant_type="nf4",

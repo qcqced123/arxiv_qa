@@ -131,19 +131,19 @@ def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elastics
 
     answers = []  # retrieve the top-k documents from the elastic search engine
     for query in queries:
-        context = query_encoder(
+        prompt = query_encoder(
             es=es,
             retriever=retriever,
             query=query,
-            top_k=5
+            top_k=10
         )
 
         answer = tuner.inference(
+            prompt=prompt,
             model=generator,
-            query=query,
-            context=context,
             max_new_tokens=cfg.max_new_tokens,
             max_length=cfg.max_len,
+            return_full_text=cfg.return_full_text,
             strategy=cfg.strategy,
             penalty_alpha=cfg.penalty_alpha,
             num_beams=cfg.num_beams,

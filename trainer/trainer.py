@@ -570,61 +570,11 @@ class TextGenerationTuner:
                 )
         return retriever, model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
 
-    def train_val_fn(
-        self,
-        loader_train,
-        retriever: nn.Module,
-        model: nn.Module,
-        criterion: nn.Module,
-        optimizer,
-        scheduler,
-        loader_valid,
-        val_criterion: nn.Module,
-        val_metric_list: List[Callable],
-        val_score_max: float,
-        val_score_max_2: float,
-        epoch: int,
-        awp: nn.Module = None,
-        swa_model: nn.Module = None,
-        swa_start: int = None,
-        swa_scheduler=None
-    ):
-        losses = AverageMeter()
-        scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
+    def train_val_fn(self) -> None:
+        pass
 
-        model.train()
-        for step, batch in enumerate(tqdm(loader_train)):
-            optimizer.zero_grad(set_to_none=True)
-            inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k != 'labels'}
-            labels = batch['labels'].to(self.cfg.device, non_blocking=True)
-
-            result = search_candidates(
-                query=inputs['input_ids'],
-                encoder=retriever,
-                es=self.es,
-                top_k=5
-            )
-            context = ''
-            for i, res in enumerate(result):
-                curr = f"Title {i + 1}: " + res['_source']['title'] + "\n"
-                curr += res['_source']['doc']
-                context += curr
-                if i + 1 != len(result):
-                    context += "\n\n"
-
-            self.tokenizer()
-
-            with torch.cuda.amp.autocast(enabled=self.cfg.amp_scaler):
-                pass
-
-    def valid_fn(
-        self,
-        model: nn.Module,
-        val_criterion: nn.Module,
-        val_metric_list: List[Callable]
-    ) -> Tuple[np.ndarray, List]:
-        """ function for validation loop
-        """
+    def valid_fn(self) -> None:
+        pass
 
     @staticmethod
     def log_probs_from_logit(logits, labels):
@@ -652,40 +602,70 @@ class TextGenerationTuner:
         model: nn.Module,
         max_new_tokens: int,
         max_length: int,
-        prompt: str = None,
+        return_full_text: bool = False,
         query: str = None,
         context: str = None,
+        prompt: str = None,
         strategy: str = None,
         penalty_alpha: float = None,
         num_beams: int = None,
-        temperature: float = None,
-        top_k: int = None,
-        top_p: float = None,
+        temperature: float = 1,
+        top_k: int = 50,
+        top_p: float = 0.9,
         repetition_penalty: float = None,
         length_penalty: float = None,
         no_repeat_ngram_size: int = None,
-        do_sample: bool = None,
+        do_sample: bool = False,
         use_cache: bool = True,
     ) -> List[Dict]:
-        """ method for making the answer from the given prompt (context + query) """
-        prompt = f"[context]\n{context}\n\n[query]\n{query}" if prompt is None else prompt
-        input_ids = self.tokenizer(prompt, return_tensors='pt')['input_ids'].to(self.cfg.device)
+        """ method for making the answer from the given prompt (context + query) or pre-defined prompt by caller
+
+        generate method's arguments setting guide:
+            1) num_beams: 1 for greedy search, > 1 for beam search
+
+            2) temperature: softmax distribution, default is 1 meaning that original softmax distribution
+                            (if you set < 1, it will be more greedy, if you set > 1, it will be more diverse)
+
+            3) do_sample: flag for using sampling method, default is False
+                          (if you want to use top-k or top-p sampling, set this flag to True)
+
+            4) top_k: top-k sampling, default is 50, must do_sample=True
+            5) top_p: top-p (nucleus) sampling, default is 0.9, must do_sample=True
+        """
+        prompt = prompt if prompt is not None else f"context:{context}\nquery:{query}"
+
+        batch_inference = False
+        inputs = self.tokenizer(prompt, return_tensors='pt')
+        for k, v in inputs.item():
+            inputs[k] = v.to(self.cfg.device)
+
+        if not batch_inference:  # not necessary for inferencing only single data instance
+            del inputs['attention_mask']
+
         output = model.model.generate(
-            input_ids=input_ids,
+            input_ids=inputs['input_ids'],
+            attention_mask=inputs['attention_mask'] if inputs['attention_mask'] is not None else None, # for generation with mini-batch
             max_new_tokens=max_new_tokens,
-            max_length=max_length,
-            penalty_alpha=penalty_alpha,
+            # max_length=max_length,
+            return_full_text=return_full_text,
             num_beams=num_beams,
             temperature=temperature,
+            do_sample=do_sample,
             top_k=top_k,
             top_p=top_p,
+            penalty_alpha=penalty_alpha,
             repetition_penalty=repetition_penalty,
             length_penalty=length_penalty,
             no_repeat_ngram_size=no_repeat_ngram_size,
-            do_sample=do_sample,
             use_cache=use_cache,
         )
-        return self.tokenizer.decode(output[0], skip_special_tokens=True)
+        # output has nested tensor, so we need to flatten it for decoding
+        result = self.tokenizer.decode(
+            output[0],
+            skip_special_tokens=True,
+            clean_up_tokenization_spaces=True
+        )
+        return result[len(prompt):]  # for removing the prompt, only return the generated text, maybe remove this logic
 
 
 class MetricLearningTuner:
@@ -778,8 +758,7 @@ class MetricLearningTuner:
         return model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
 
     def train_val_fn(self):
-        losses = AverageMeter()
-        scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
+        pass
 
     def valid_fn(self):
         pass

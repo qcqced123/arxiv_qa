@@ -193,6 +193,9 @@ class ContrastiveLoss(nn.Module):
     Contrastive Loss which is basic method of Metric Learning
     Closer distance between data points in intra-class, more longer distance between data points in inter-class
 
+    This class is adapted from Sentence Transformers Library's original ContrastiveLoss class
+    We use this class for learning similarity between two subsequent sentences from just one input prompt, separating by [SEP] token
+
     Distance:
         Euclidean Distance: sqrt(sum((x1 - x2)**2))
         Cosine Distance: 1 - torch.nn.function.cos_sim(x1, x2)
@@ -219,10 +222,8 @@ class ContrastiveLoss(nn.Module):
         self.distance = SelectDistances(metric)  # Options: euclidean, manhattan, cosine
         self.margin = margin
 
-    def forward(self, sentence_features: Iterable[Dict[str, Tensor]], labels: Tensor) -> Tensor:
-        embeddings = [self.model(sentence_feature)['sentence_embedding'] for sentence_feature in sentence_features]
-        anchor, instance = embeddings
-        distance = self.distance(anchor, instance)
+    def forward(self, query_h: Tensor, context_h: Tensor, labels: Tensor) -> Tensor:
+        distance = self.distance(query_h, context_h)
         contrastive_loss = 0.5 * (labels.float() * torch.pow(distance, 2) +
                                   (1 - labels.float()) * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2))
         return contrastive_loss.mean()
@@ -230,12 +231,15 @@ class ContrastiveLoss(nn.Module):
 
 # Batch Embedding Table Dot-Product Version of Contrastive Loss
 class BatchDotProductContrastiveLoss(nn.Module):
-    """
-    Batch Embedding Inner-Product based Contrastive Loss Function
-    This metrics request just one input batch, not two input batches for calculating losses
+    """ Batch Embedding Inner-Product based Contrastive Loss Function
+
+    This metrics request just one input batch, not two input batches for calculating losses,
+    for calculating cosine similarity between input batch instances
+
     Args:
         metric: distance metrics, default: cosine
         margin: margin for negative pairs, default: 1.0
+
     Maths:
         losses(x, y) = 0.5 * (y * distance(x1, x2) + (1 - y) * max(margin - distance(x1, x2), 0))
     """
@@ -339,7 +343,7 @@ class MultipleNegativeRankingLoss(nn.Module):
         https://www.youtube.com/watch?v=b_2v9Hpfnbw&ab_channel=NicholasBroad
     """
 
-    def __init__(self, reduction: str, scale: float = 20.0, similarity_fct=cos_sim) -> None:
+    def __init__(self, reduction: str = 'mean', scale: float = 20.0, similarity_fct=cos_sim) -> None:
         super().__init__()
         self.reduction = reduction
         self.scale = scale
@@ -347,15 +351,15 @@ class MultipleNegativeRankingLoss(nn.Module):
         self.reduction = reduction
         self.cross_entropy_loss = CrossEntropyLoss(self.reduction)
 
-    def forward(self, embeddings_a: Tensor, embeddings_b: Tensor, labels: Tensor = None) -> Tensor:
-        """
-        This Multiple Negative Ranking Loss (MNRL) is used for same embedding list,
+    def forward(self, query_h: Tensor, context_h: Tensor, labels: Tensor = None) -> Tensor:
+        """ This Multiple Negative Ranking Loss (MNRL) is used for same embedding list,
+
         Args:
-            embeddings_a: embeddings of shape for mini-batch
-            embeddings_b: labels of mini-batch instance from competition dataset (rank), must be on same device with embedding
-            labels:
+            query_h: hidden states of query sentences in single prompt input, separating by [SEP] token
+            context_h: hidden states of context sentences in single prompt input, separating by [SEP] token
+            labels: default is None, because label for mnrl is made at runtime in instance generated from this class
         """
-        similarity_scores = self.similarity_fct(embeddings_a, embeddings_b) * self.scale
+        similarity_scores = self.similarity_fct(query_h, context_h) * self.scale
         labels = torch.tensor(
             range(len(similarity_scores)),
             dtype=torch.long,
