@@ -122,15 +122,22 @@ class AbstractTask:
             raise NotImplementedError("Not Yet, Please pass hub argument to huggingface for now")
 
         elif self.cfg.hub == 'huggingface':
-            config = AutoConfig.from_pretrained(self.cfg.model_name)
+            config = AutoConfig.from_pretrained(
+                self.cfg.model_name,
+                trust_remote_code=True
+            )
             model = AutoModelForCausalLM.from_pretrained(
                 self.cfg.model_name,
                 config=config,
-                quantization_config=bit_config
+                quantization_config=bit_config,
+                trust_remote_code=True,
+                attn_implementation="flash_attention_2"
             ) if generate_mode else AutoModel.from_pretrained(
                 self.cfg.model_name,
                 config=config,
-                quantization_config=bit_config
+                quantization_config=bit_config,
+                trust_remote_code=True,
+                attn_implementation="flash_attention_2"
             )
 
         # apply lora, qlora

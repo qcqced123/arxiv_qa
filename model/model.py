@@ -51,8 +51,7 @@ class MaskedLanguageModel(nn.Module, AbstractTask):
 
 
 class CasualLanguageModel(nn.Module, AbstractTask):
-    """ Custom Model for CLM Task, which is used for pre-training Auto-Regressive Model (AR),
-    like as GPT, T5, llama ... etc
+    """ Custom Model for CLM Task, which is used for pre-training Auto-Regressive Model (AR)
 
     Also, you can use this task module for text generation,
     text summarization with generation ... any other task ,which is needed to generate text from prompt sentences

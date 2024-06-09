@@ -174,7 +174,6 @@ class CFG:
 
     """ Generate Option """
     max_new_tokens = 512
-    return_full_text = False  # llm return full text or not, full text means that the output text is concatenated with input text
     strategy: str = 'beam'
     penalty_alpha: float = 0.6 if strategy == 'contrastive' else None
     num_beams: int = 4 if strategy == 'beam' else None
