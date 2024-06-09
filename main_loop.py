@@ -16,10 +16,11 @@ from utils.util import sync_config
 from utils.helper import check_library, all_type_seed
 
 from configuration import CFG
+from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
-from generate_question.generate_question import get_necessary_module_for_generation_in_local, generate_with_llama, google_gemini_api
+from generate_question.generate_question import get_necessary_module_for_generation_in_local, google_gemini_api, postprocess
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -174,7 +175,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             df.to_csv(output_path, index=False)
 
         elif cfg.work_flow_state == "resume":
-            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/metric_learning_total_paper_chunk.csv')[0:10]
+            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/sampling_metric_learning_total_paper_chunk.csv')
 
         # branch of question generation
         # you can choose any other generator llm in huggingface model hub (currently google gemini api does not support)
@@ -184,20 +185,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         modules = get_necessary_module_for_generation_in_local(cfg, es, g)
         tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
         for i, row in tqdm(df.iterrows(), total=len(df)):
-            title, context = row['title'], row['doc']
-            prompt = f"""Here are some rules for generating the questions:\n
-            Questions should also be able to capture the features or characteristics of a given text.\n
-            The purpose of asking you to create questions is to create a dataset of question-document pairs.\n
-            Please create with purpose and generate creative, informative, and diverse questions.\n
-            Do not return questions that are too similar to each other, or too general.\n
-            Keep the number of questions between 1 and 5.\n
-            If you want to ask multiple questions, please separate them with spaces without newlines.\n
-            Please do not generate any other context text, only questions.\n
-            generated questions should be in the form of a question, not a statement. example result is below:\n
-            example question:How does editing knowledge in a language model create a "ripple effect" on other related facts or knowledge within the model? What evaluation criteria are proposed to better assess the impact of knowledge editing on related facts in language models?How does the RippleEdits benchmark contribute to understanding the ripple effects of knowledge editing in language models?\n
-            text:{context}\n
-            instruct:You're a question generating machine. Generate the appropriate question based on given text above.\n\n\n"""
-
+            prompt = get_prompt_for_question_generation(context=row['doc'])
             questions.append(
                 tuner.inference(
                     model=generator,
@@ -216,7 +204,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
                 )
             )
         # branch merge point of question generation
-        df['question'] = questions
+        df['question'] = [postprocess(question) for question in questions]
 
         output_path = f"dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db.csv"
         df.to_csv(output_path, index=False)

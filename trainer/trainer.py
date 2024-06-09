@@ -661,7 +661,7 @@ class TextGenerationTuner:
             skip_special_tokens=True,
             clean_up_tokenization_spaces=True
         )
-        return result.split("\n\n\n")[-1]
+        return result
 
 
 class MetricLearningTuner:

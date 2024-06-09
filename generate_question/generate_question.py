@@ -45,6 +45,23 @@ def get_necessary_module(cfg: CFG) -> Dict[str, Any]:
     }
 
 
+def postprocess(output: str) -> str:
+    """ function for postprocessing the output text from question generation model
+
+    Args:
+        output (str): output text from the question generation model, containing the generated questions
+
+    example:
+        before = [Question 1: Value1, Question 2: Value2, Question 3: Value3]
+        after = Value1?\n Value2?\n Value3?\n
+    """
+    output = output.split('=====')[1]
+    start = output.find('Question 1:')
+    question_list = [text for text in output[start:].split('\n\n') if text.startswith('Question')]
+    question = [text.split(': ')[1].strip() + '\n' for text in question_list]
+    return ''.join(question)
+
+
 def get_necessary_module_for_generation_in_local(cfg: CFG, es: Elasticsearch, g: torch.Generator) -> Dict[str, Any]:
     """ function for getting necessary module for the project
     Args:
@@ -67,38 +84,6 @@ def get_necessary_module_for_generation_in_local(cfg: CFG, es: Elasticsearch, g:
         'tuner': tuner,
         'generator': generator
     }
-
-
-def generate_with_llama(cfg: CFG, input_ids: List[int], tokenizer: AutoTokenizer, model: nn.Module) -> str:
-    """ function for generating "arxiv question-document dataset" by using meta-ai llama3-8b model
-
-    this function will do the "one-shot learning"(meta-learning) for generating the dataset
-
-    Args:
-        cfg (CFG): configuration object for the project
-        input_ids (List[int]): list of input ids for the model, already passing through the tokenizer
-        tokenizer (AutoTokenizer): default is llama3-8b tokenizer, for tokenizing the input text
-        model (nn.Module): default is llama3-8b model, for generating the question
-        temperature (float): default 0.0, the temperature value for the diversity of the output text
-                             (if you set T < 1.0, the output text will be more deterministic, sharpening softmax dist)
-                             (if you set T > 1.0, the output text will be more diverse, flattening softmax dist)
-    """
-    question = model.generate(
-        input_ids=input_ids,
-        max_new_tokens=cfg.max_new_tokens,
-        max_length=cfg.max_len,
-        penalty_alpha=cfg.penalty_alpha,
-        num_beams=cfg.num_beams,
-        temperature=cfg.temperature,
-        top_k=cfg.top_k,
-        top_p=cfg.top_p,
-        repetition_penalty=cfg.repetition_penalty,
-        length_penalty=cfg.length_penalty,
-        no_repeat_ngram_size=cfg.no_repeat_ngram_size,
-        do_sample=cfg.do_sample,
-        use_cache=cfg.use_cache,
-    )
-    return tokenizer.decode(question[0], skip_special_tokens=True)
 
 
 def google_gemini_api(title: str, context: str, foundation_model: str = 'gemini-pro', temperature: float = 0) -> str:
