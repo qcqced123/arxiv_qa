@@ -85,7 +85,7 @@ class QuestionDocumentMatchingDataset(Dataset):
         for k, v in batches.items():
             batches[k] = torch.as_tensor(v)
 
-        # find sep token index
+        # find sep token index for making query index mask and document index mask
         counter = 0
         q_i, d_i = None, None
         for i, v in enumerate(batches['input_ids']):
@@ -96,6 +96,7 @@ class QuestionDocumentMatchingDataset(Dataset):
             elif counter and v == self.cfg.tokenizer.sep_token_id:
                 d_i = i
                 break
+
         batches['query_index'] = torch.as_tensor(q_i)
         batches['document_index'] = torch.as_tensor(d_i)
         batches['labels'] = torch.as_tensor(self.labels[item])

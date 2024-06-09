@@ -220,12 +220,24 @@ class MetricLearningModel(nn.Module, AbstractTask):
         if self.cfg.gradient_checkpoint:
             self.model.gradient_checkpointing_enable()
 
+    @staticmethod
+    def get_mask(features: Tensor, mask_type: str, query_index: Tensor, context_index: Tensor = None) -> Tensor:
+        mask = None
+        batch_size, seq_length, hidden_size = features.size()
+        if mask_type == 'query':
+            mask = (torch.arange(seq_length).expand(batch_size, seq_length) >= 1) & (torch.arange(seq_length).expand(batch_size, seq_length) < query_index.unsqueeze(1))
+        elif mask_type == 'context':
+            mask = (torch.arange(seq_length).expand(batch_size, seq_length) >= query_index.unsqueeze(1) + 1) & (torch.arange(seq_length).expand(batch_size, seq_length) < context_index.unsqueeze(1))
+        return mask
+
     def feature(self, inputs: Dict):
         outputs = self.model(**inputs)
         return outputs
 
-    def forward(self, inputs: Dict, query_index: int, context_index: int) -> Tuple[Tensor, Tensor]:
-        """
+    def forward(self, inputs: Dict, query_index: Tensor, context_index: Tensor) -> Tuple[Tensor, Tensor]:
+        """ forward function for Metric Learning Task, which is used for learning similarity between two input sentences
+        using argument "query_index" and "context_index" for separating two input sentences
+
         Args:
             inputs: Dict, input dictionary for forward function
             query_index: int, index of query token in input_ids
@@ -242,12 +254,14 @@ class MetricLearningModel(nn.Module, AbstractTask):
             features = h.hidden_states
 
         query_h = self.pooling(
-            last_hidden_state=features[:, 1:query_index, :],
+            last_hidden_state=features,
+            mask=self.get_mask(features=features, mask_type='query', query_index=query_index),
             p=self.cfg.pow_value
         )  # for calculating the arcface loss, multiple negative ranking loss
 
         context_h = self.pooling(
-            last_hidden_state=features[:, query_index+1:context_index, :],
+            last_hidden_state=features,
+            mask=self.get_mask(features, mask_type='context', query_index=query_index, context_index=context_index),
             p=self.cfg.pow_value
         )  # for calculating the arcface loss, multiple negative ranking loss
         return query_h, context_h

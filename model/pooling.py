@@ -22,17 +22,25 @@ class SubSequenceGEMPooling(nn.Module):
     Reference:
         https://paperswithcode.com/method/generalized-mean-pooling
     """
-    def __init__(self, auto_cfg) -> None:
+    def __init__(self, auto_cfg=None) -> None:
         super(SubSequenceGEMPooling, self).__init__()
 
     @staticmethod
-    def forward(last_hidden_state: Tensor, p: float = 1) -> Tensor:
-        """ last_hidden_state.size: [1, cell_sequence, hidden_size]
-        1) Pow last_hidden_state with p and then take a averaging
-        2) pow sum_embeddings with 1/p
+    def forward(last_hidden_state: Tensor, mask: Tensor, p: float = 1) -> Tensor:
+        """
+        Args:
+            last_hidden_state: shape of [batch, sequence, hidden_size] tensor, hidden state of query or context from model
+            mask: shape of [batch, sequence] tensor, attention mask for ignoring not target token (not query, not context)
+            p: float, exponent value for generalized mean pooling, default is 1
+
+        workflow:
+            1) Pow last_hidden_state with p and then take a averaging
+            2) count validate tokens in last hidden state
+            3) pow sum_embeddings with 1/p
         """
         p_embeddings = torch.pow(last_hidden_state, p)
-        sum_embeddings = torch.mean(p_embeddings, dim=1)
+        valid_token_counts = mask.sum(dim=1)
+        sum_embeddings = p_embeddings.sum(dim=1) / valid_token_counts
         gem_embeddings = torch.pow(sum_embeddings, 1. / p)
         return gem_embeddings
 

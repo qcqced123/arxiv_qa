@@ -18,9 +18,8 @@ def set_sorting(sorting: str = 'relevance') -> object:
     Args:
         sorting: default str, sorting criterion for the search results,
                  Possible values are: 'relevance', 'lastUpdatedDate', 'submittedDate'
-
     Returns:
-
+        arxiv.SortCriterion: object, sorting criterion for the search results
     """
     if sorting == 'relevance':
         return arxiv.SortCriterion.Relevance
