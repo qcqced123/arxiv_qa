@@ -282,10 +282,18 @@ class ArcFace(nn.Module):
         https://arxiv.org/abs/1801.07698
         https://github.com/wujiyang/Face_Pytorch/blob/master/margin/ArcMarginProduct.py
     """
-    def __init__(self, dim_model: int = 768, num_classes: int = 10, s: int = 30.0, m: int = 0.50) -> None:
+    def __init__(
+        self,
+        dim_model: int = 768,
+        num_classes: int = 10,
+        s: int = 30.0,
+        m: int = 0.50,
+        device: str = 'cpu'
+    ) -> None:
         super(ArcFace, self).__init__()
         self.dim_model = dim_model
         self.num_classes = num_classes
+        self.device = device
         self.s = s
         self.m = m
         self.w = nn.Parameter(torch.FloatTensor(dim_model, num_classes))
@@ -306,11 +314,11 @@ class ArcFace(nn.Module):
         sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(0, 1))
         z = cosine*self.cos_m - sine*self.sin_m
         z = torch.where(cosine > self.th, z, cosine - self.mm)
-        one_hot = torch.zeros(cosine.size(), device='cuda')
+        one_hot = torch.zeros(cosine.size(), device=self.device)
         one_hot.scatter_(1, labels.view(-1, 1).long(), 1)
-        output = (one_hot * z) + ((1.0 - one_hot) * cosine)
-        output *= self.s
-        return output
+        logit = (one_hot * z) + ((1.0 - one_hot) * cosine)
+        logit *= self.s
+        return logit
 
 
 # Multiple Negative Ranking Loss, source code from UKPLab
@@ -367,3 +375,4 @@ class MultipleNegativeRankingLoss(nn.Module):
         )
         # labels = embeddings_a.T.type(torch.long).to(similarity_scores.device)
         return self.cross_entropy_loss(similarity_scores, labels)
+

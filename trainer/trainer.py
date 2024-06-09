@@ -26,6 +26,7 @@ from model import mlm, clm, sbo
 from db.run_db import get_encoder, search_candidates
 from dataset_class.preprocessing import dataset_split, load_all_types_dataset
 
+from trainer.loss import MultipleNegativeRankingLoss
 from trainer.collator_fn import CollatorFunc
 from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler
 from trainer.trainer_utils import load_pretrained_weights, get_optimizer_grouped_parameters, get_scheduler
@@ -669,9 +670,34 @@ class TextGenerationTuner:
 
 
 class MetricLearningTuner:
-    """ trainer class for conducting metric learning objective, such as contrastive learning, triplet loss, etc
+    """ trainer class for conducting metric learning objective, such as contrastive learning,
+    multiple negative ranking loss, arcface ...
+
+    this trainer class is designed for especially getting good retriever between user's query and document
+
+    so, we use the plm for the retrieval task such as sentence-transformers, DPR
+
+    also, we use the plm such as longformer, bigbird for the retrieval task, which can have only encoder and
+    can be good at long sequence (more than 512 tokens)
+
+    we use arcface head(weight shared) and batch multiple negative ranking loss,
+    originally, we must add the two arcface head for each type of sentence, but we use shared weight for two sentences
+    it can be available because of the same number of instances in each type of sentence, expecting for reducing the number of parameters and training time
 
     Args:
+        cfg: configuration module, configuration.py
+        generator: torch.Generator, for init pytorch random seed
+
+    References:
+        https://arxiv.org/pdf/2005.11401
+        https://arxiv.org/abs/1801.07698
+        https://arxiv.org/pdf/1705.00652.pdf
+        https://github.com/KevinMusgrave/pytorch-metric-learning
+        https://www.sbert.net/docs/package_reference/losses.html
+        https://github.com/wujiyang/Face_Pytorch/blob/master/margin/ArcMarginProduct.py
+        https://github.com/UKPLab/sentence-transformers/blob/master/sentence_transformers/losses/MultipleNegativesRankingLoss.py
+        https://www.kaggle.com/code/nbroad/multiple-negatives-ranking-loss-lecr/notebook
+        https://www.youtube.com/watch?v=b_2v9Hpfnbw&ab_channel=NicholasBroad
     """
     def __init__(self, cfg: CFG, generator: torch.Generator) -> None:
         self.cfg = cfg
@@ -707,7 +733,7 @@ class MetricLearningTuner:
         return loader_train, loader_valid, len(train)
 
     def model_setting(self, len_train: int):
-        model = getattr(task, self.cfg.task)(self.cfg)
+        model = getattr(task, self.cfg.task)(self.cfg, len_train)
 
         if self.cfg.resume:
             model.load_state_dict(
@@ -757,11 +783,129 @@ class MetricLearningTuner:
             )
         return model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
 
-    def train_val_fn(self):
-        pass
+    def train_val_fn(
+        self,
+        loader_train,
+        model: nn.Module,
+        criterion: nn.Module,
+        optimizer,
+        scheduler,
+        loader_valid,
+        val_criterion: nn.Module,
+        val_metric_list: List[Callable],
+        val_score_max: float,
+        val_score_max_2: float,
+        epoch: int,
+        awp: nn.Module = None,
+        swa_model: nn.Module = None,
+        swa_start: int = None,
+        swa_scheduler=None
+    ) -> Tuple[Any, Union[float, ndarray, ndarray]]:
+        model.train()
+        losses = AverageMeter()  # for logging total batch losses (arcface + contrastive loss)
+        mnrl = MultipleNegativeRankingLoss()  # initialize the multiple negative ranking loss instance
+        scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
 
-    def valid_fn(self):
-        pass
+        for step, batch in enumerate(tqdm(loader_train)):
+            optimizer.zero_grad(set_to_none=True)
+            inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k in ["input_ids", "attention_mask"]}
+            query_index = batch['query_index'].to(self.cfg.device, non_blocking=True)
+            document_index = batch['document_index'].to(self.cfg.device, non_blocking=True)
+            labels = batch['labels'].to(self.cfg.device, non_blocking=True)
+
+            batch_size = labels.size(0)
+            with torch.cuda.amp.autocast(enabled=self.cfg.amp_scaler):
+                query_h, context_h = model(
+                    inputs=inputs,
+                    query_index=query_index,
+                    context_index=document_index
+                )
+
+                # do not call view, logit of arcface
+                mnrl_loss = mnrl(query_h, context_h)
+                arc_loss = criterion(model.arcface_head(query_h, labels), labels) + criterion(model.arcface_head(context_h, labels), labels)
+                loss = mnrl_loss + arc_loss
+
+            if self.cfg.n_gradient_accumulation_steps > 1:
+                loss = loss / self.cfg.n_gradient_accumulation_steps
+
+            scaler.scale(loss).backward()
+            losses.update(loss.item(), batch_size)
+
+            if self.cfg.clipping_grad and (step + 1) % self.cfg.n_gradient_accumulation_steps == 0 or self.cfg.n_gradient_accumulation_steps == 1:
+                scaler.unscale_(optimizer)
+                grad_norm = torch.nn.utils.clip_grad_norm(
+                    model.parameters(),
+                    self.cfg.max_grad_norm * self.cfg.n_gradient_accumulation_steps
+                )
+                scaler.step(optimizer)
+                scaler.update()
+                scheduler.step()
+
+            # logging insert loss, gradient norm, lr to wandb
+            lr = scheduler.get_lr()[0]
+            grad_norm = grad_norm.detach().cpu().numpy()
+
+            wandb.log({
+                '<Per Step> Total Train Loss': losses.avg,
+                '<Per Step> Gradient Norm': grad_norm,
+                '<Per Step> lr': lr,
+            })
+
+            # step-level validation
+            if ((step + 1) % self.cfg.val_check == 0) or ((step + 1) == len(loader_train)):
+                valid_loss = self.valid_fn(
+                    loader_valid,
+                    model,
+                    val_criterion,
+                    val_metric_list
+                )
+                if val_score_max >= valid_loss:
+                    print(f'[Update] Total Valid Score : ({val_score_max:.4f} => {valid_loss:.4f}) Save Parameter')
+                    print(f'Total Best Score: {valid_loss}')
+                    torch.save(
+                        model.model.student.state_dict(),
+                        f'{self.cfg.checkpoint_dir}DistilBERT_Student_{self.cfg.mlm_masking}_{self.cfg.max_len}_{self.cfg.module_name}_state_dict.pth'
+                    )
+                    val_score_max = valid_loss
+        return losses.avg * self.cfg.n_gradient_accumulation_steps, val_score_max
+
+    def valid_fn(
+        self,
+        loader_valid,
+        model: nn.Module,
+        val_criterion: nn.Module,
+        val_metric_list: List[Callable]
+    ) -> Tuple[float, float, float]:
+        """ validation method for sentence(sequence) classification task
+        """
+        model.eval()
+        valid_losses = AverageMeter()
+        mnrl = MultipleNegativeRankingLoss()  # initialize the multiple negative ranking loss instance
+        with torch.no_grad():
+            for step, batch in enumerate(tqdm(loader_valid)):
+                inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k in ["input_ids", "attention_mask"]}
+                query_index = batch['query_index'].to(self.cfg.device, non_blocking=True)
+                document_index = batch['document_index'].to(self.cfg.device, non_blocking=True)
+                labels = batch['labels'].to(self.cfg.device, non_blocking=True)
+
+                batch_size = labels.size(0)
+
+                query_h, context_h = model(
+                    inputs=inputs,
+                    query_index=query_index,
+                    context_index=document_index
+                )
+                # do not call view, logit of arcface
+                mnrl_loss = mnrl(query_h, context_h)
+                arc_loss = val_criterion(model.arcface_head(query_h, labels), labels) + val_criterion(model.arcface_head(context_h, labels), labels)
+
+                loss = mnrl_loss + arc_loss
+
+                valid_losses.update(loss.item(), batch_size)
+                wandb.log({'<Val Step> Valid Loss': valid_losses.avg})
+
+        return valid_losses.avg
 
 
 class SequenceClassificationTuner:

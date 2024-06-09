@@ -5,11 +5,14 @@ import model.pooling as pooling
 from torch import Tensor
 from typing import List, Dict, Tuple
 
+
 from model.mlm import MLMHead
 from model.clm import CLMHead
 from configuration import CFG
+from trainer.loss import ArcFace
 from model.abstract_task import AbstractTask
 from model.model_utils import freeze, reinit_topk
+
 
 
 class MaskedLanguageModel(nn.Module, AbstractTask):
@@ -169,13 +172,31 @@ class SentimentAnalysis(nn.Module, AbstractTask):
 
 
 class MetricLearningModel(nn.Module, AbstractTask):
-    """ Custom Model for Metric Learning Task, which is used for learning similarity between two input sentences
+    """ custom model for Metric Learning Task, which is used for learning similarity between two input sentences
     We use this model for learning similarity between two input sentences, which is used for semantic search
+
+    we set the arcface & multiple negative ranking loss combined pipeline (multi-objective learning)
+    you can see total structure of this pipeline in below references link
+
+    we use arcface head(weight shared) and batch multiple negative ranking loss,
+    originally, we must add the two arcface head for each type of sentence, but we use shared weight for two sentences
+    it can be available because of the same number of instances in each type of sentence, expecting for reducing the number of parameters and training time
 
     Args:
         cfg: configuration.CFG
+
+    References:
+        https://arxiv.org/pdf/2005.11401
+        https://arxiv.org/abs/1801.07698
+        https://arxiv.org/pdf/1705.00652.pdf
+        https://github.com/KevinMusgrave/pytorch-metric-learning
+        https://www.sbert.net/docs/package_reference/losses.html
+        https://github.com/wujiyang/Face_Pytorch/blob/master/margin/ArcMarginProduct.py
+        https://github.com/UKPLab/sentence-transformers/blob/master/sentence_transformers/losses/MultipleNegativesRankingLoss.py
+        https://www.kaggle.com/code/nbroad/multiple-negatives-ranking-loss-lecr/notebook
+        https://www.youtube.com/watch?v=b_2v9Hpfnbw&ab_channel=NicholasBroad
     """
-    def __init__(self, cfg: CFG) -> None:
+    def __init__(self, cfg: CFG, len_train: int) -> None:
         super(MetricLearningModel, self).__init__()
         self.cfg = cfg
         self.components = self.select_pt_model()
@@ -185,6 +206,11 @@ class MetricLearningModel(nn.Module, AbstractTask):
 
         self.model.resize_token_embeddings(len(self.cfg.tokenizer))
         self.pooling = getattr(pooling, self.cfg.pooling)(self.cfg)
+        self.arcface_head = ArcFace(
+            dim_model=self.auto_cfg.hidden_size,
+            num_classes=len_train,
+            device=self.cfg.device
+        )  # parameter sharing, called in trainer class's train method, not in this method
 
         if self.cfg.freeze:
             freeze(self.model.embeddings)
@@ -220,12 +246,12 @@ class MetricLearningModel(nn.Module, AbstractTask):
         query_h = self.pooling(
             last_hidden_state=features[:, 1:query_index, :],
             p=self.cfg.pow_value
-        )
+        )  # for calculating the arcface loss, multiple negative ranking loss
 
         context_h = self.pooling(
             last_hidden_state=features[:, query_index+1:context_index, :],
             p=self.cfg.pow_value
-        )
+        )  # for calculating the arcface loss, multiple negative ranking loss
         return query_h, context_h
 
 

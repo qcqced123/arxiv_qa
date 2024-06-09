@@ -34,7 +34,7 @@ def youtube_script_api(url_path: str) -> str:
 
 
 if __name__ == "__main__":
-    url = 'https://www.youtube.com/watch?v=8OJC21T2SL4&list=LL&index=3&ab_channel=GregKamradt%28DataIndy%29'
+    url = 'https://www.youtube.com/watch?v=b_2v9Hpfnbw&ab_channel=NicholasBroad'
 
     text = youtube_script_api(url)
     print(f"YouTube Script: {text}")
