@@ -60,7 +60,6 @@ class QuestionDocumentMatchingDataset(Dataset):
         self.cfg = cfg
         self.tokenizer = tokenizing
         self.df = df[df['question'].notnull()]  # remove empty question rows
-        self.objective_fn = self.cfg.objective_fn
 
     def __len__(self) -> int:
         return len(self.df)
