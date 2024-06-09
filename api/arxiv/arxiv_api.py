@@ -4,6 +4,7 @@ import pandas as pd
 from typing import List
 from tqdm.auto import tqdm
 from multiprocessing import Pool
+from dataset_class.preprocessing import load_all_types_dataset
 
 
 def set_sorting(sorting: str = 'relevance') -> object:
@@ -67,13 +68,20 @@ def main_loop(queries: List[str], data_type: str = 'insert', max_results: int = 
                 pid = query if data_type == 'insert' else url[url.find('abs/') + len('abs/'):][:-2]
                 filename = f"{pid}_{title}.pdf"
                 paper.download_pdf(
-                    dirpath='./insert/',
+                    dirpath='./train/',
                     filename=filename
                 )
         except Exception as e:
             print(f'Error: {e}')
 
     return
+
+
+def remove_exist_paper_list():
+    query = pd.read_csv('./paper_id_list.csv').paper_id.tolist()  # next time, start at 430~2500
+    exist_list = load_all_types_dataset('./exist_list.pkl.pkl')
+    query = list(set(query) - set(exist_list))
+    return query
 
 
 if __name__ == '__main__':
@@ -84,8 +92,8 @@ if __name__ == '__main__':
     values = set_sorting(sorting=standard)
 
     n_jobs = 4
-    query = pd.read_csv('./paper_id_list.csv').paper_id.tolist() # next time, start at 430~2500
+    query = remove_exist_paper_list()
     chunked = [query[i:i + len(query)//n_jobs] for i in range(0, len(query), len(query)//n_jobs)]
-    resume_chunked = [chunk[640:] for chunk in chunked]
+    resume_chunked = [chunk for chunk in chunked]
     with Pool(processes=n_jobs) as pool:
         pool.map(main_loop, resume_chunked)
