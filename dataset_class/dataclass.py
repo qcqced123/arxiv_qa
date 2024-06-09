@@ -59,21 +59,24 @@ class QuestionDocumentMatchingDataset(Dataset):
         super().__init__()
         self.cfg = cfg
         self.tokenizer = tokenizing
-        self.df = df[df['question'].notnull()]  # remove empty question rows
+        self.questions = df['question'].tolist()
+        self.documents = df['doc'].tolist()
+        self.labels = df['label'].tolist()
 
     def __len__(self) -> int:
-        return len(self.df)
+        return len(self.questions)
 
     def __getitem__(self, item: int) -> Dict[str, Tensor]:
         cls, sep = self.cfg.tokenizer.cls_token, self.cfg.tokenizer.sep_token
 
-        query, document = no_multi_spaces(self.df.at[item, 'question']), no_multi_spaces(self.df.at[item, 'doc'])
+        query, document = no_multi_spaces(self.questions[item]), no_multi_spaces(self.documents[item])
         prompt = f"[{cls}] " + query + f" [{sep}] " + document + f" [{sep}]"
 
         batches = self.tokenizer(
                 text=prompt,
                 cfg=self.cfg,
-                truncation=False,
+                max_length=self.cfg.max_len,
+                truncation=True,
                 padding=False,
                 add_special_tokens=False,
             )
@@ -93,10 +96,9 @@ class QuestionDocumentMatchingDataset(Dataset):
             elif counter and v == self.cfg.tokenizer.sep_token_id:
                 d_i = i
                 break
-
         batches['query_index'] = torch.as_tensor(q_i)
         batches['document_index'] = torch.as_tensor(d_i)
-        batches['labels'] = torch.as_tensor(self.df.at[item, 'label'])
+        batches['labels'] = torch.as_tensor(self.labels[item])
         return batches
 
 

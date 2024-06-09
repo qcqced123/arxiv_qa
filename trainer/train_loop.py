@@ -20,7 +20,7 @@ g = torch.Generator()
 g.manual_seed(CFG.seed)
 
 
-def train_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearch) -> None:
+def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     """ Base Trainer Loop Function
     1) Initialize Trainer Object
     2) Make Early Stopping Object
@@ -53,10 +53,10 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearc
             metric_checker.append(-np.inf)
 
     epoch_val_score_max, val_score_max, val_score_max_2 = metric_checker
-    train_input = getattr(trainer, cfg.trainer)(cfg, g, es)  # init object
+    train_input = getattr(trainer, cfg.trainer)(cfg, g)  # init object
 
     loader_train, loader_valid, len_train = train_input.make_batch()
-    retriever, model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler = train_input.model_setting(
+    model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler = train_input.model_setting(
         len_train
     )
     train_val_method = train_input.train_val_fn
@@ -64,7 +64,6 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearc
         print(f'[{epoch + 1}/{cfg.epochs}] Train & Validation')
         train_loss, val_score_max = train_val_method(
             loader_train,
-            retriever,
             model,
             criterion,
             optimizer,

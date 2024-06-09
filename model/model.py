@@ -14,7 +14,6 @@ from model.abstract_task import AbstractTask
 from model.model_utils import freeze, reinit_topk
 
 
-
 class MaskedLanguageModel(nn.Module, AbstractTask):
     """ Custom Model for MLM Task, which is used for pre-training Auto-Encoding Model (AE)
     You can use backbone model as BERT, DeBERTa, Linear Transformer, Roformer ...

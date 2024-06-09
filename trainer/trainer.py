@@ -701,14 +701,16 @@ class MetricLearningTuner:
         self.tokenizer = self.cfg.tokenizer
         self.metric_list = self.cfg.metrics
         self.df = load_all_types_dataset(
-            f'./dataset_class/datafolder/arxiv_qa/total/metric_learning_total_paper_chunk.csv'
+            f'./dataset_class/datafolder/arxiv_qa/total/test_q_doc.csv'
         )
 
     def make_batch(self):
+        self.df.dropna(subset=['question'], inplace=True)
+        self.df.reset_index(drop=True, inplace=True)
         train, valid = dataset_split(self.cfg, self.df)
 
-        train_dataset = getattr(dataset_class, self.cfg.dataset)(train)
-        valid_dataset = getattr(dataset_class, self.cfg.dataset)(valid)
+        train_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, train)
+        valid_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, valid)
 
         collate_fn = CollatorFunc()
         loader_train = get_dataloader(

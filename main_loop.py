@@ -218,12 +218,13 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             retriever=retriever,
             df=df
         )
-
     # branch for calling pipeline that fine-tune the query encoder with metric learning, generator with clm
     elif pipeline_type == "fine_tune":
-        # train_loop()
-        pass
-
+        train_loop(
+            cfg=cfg,
+            pipeline_type=pipeline_type,
+            model_config=model_config
+        )
     # branch for calling pipeline that generates the best answer for the input query
     elif pipeline_type == "inference":
         answers = inference_loop(

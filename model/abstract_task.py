@@ -137,7 +137,6 @@ class AbstractTask:
                 config=config,
                 quantization_config=bit_config,
                 trust_remote_code=True,
-                attn_implementation="flash_attention_2"
             )
 
         # apply lora, qlora

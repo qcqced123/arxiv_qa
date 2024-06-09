@@ -163,7 +163,7 @@ class CFG:
     lora_rank = 8
     lora_alpha = 32
     lora_dropout = 0.1
-    task_type = 'SEQ2SEQ'
+    task_type = 'None'
     prompt_tuning = False
     prompt_tuning_type = 'P-TUNING'
     encoder_reparameterization_type = 'LSTM'

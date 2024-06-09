@@ -215,6 +215,7 @@ def apply_preprocess(dataset: Dataset, function: Callable, batched: bool = True,
 def tokenizing(
     text: str,
     cfg: configuration.CFG,
+    max_length: int = None,
     truncation: bool = False,
     padding: bool or str = 'max_length',
     add_special_tokens: bool = False,
@@ -223,8 +224,9 @@ def tokenizing(
     """ Preprocess text for LLM Input, for common batch system
 
     Args:
-        cfg: configuration.CFG, needed to load tokenizer from Huggingface AutoTokenizer
         text: text from dataframe or any other dataset, please pass str type
+        cfg: configuration.CFG, needed to load tokenizer from Huggingface AutoTokenizer
+        max_length: int, default None, if you want to set max length, init this param to int
         truncation: bool, default False, if you want to use truncation, set True
         padding: padding options, default 'max_length', if you want use smart batching, init this param to False
         add_special_tokens: bool, default False, if you want to use special tokens, set True
@@ -232,7 +234,7 @@ def tokenizing(
     """
     inputs = cfg.tokenizer.encode_plus(
         text,
-        max_length=None,
+        max_length=max_length,
         truncation=truncation,
         padding=padding,
         return_tensors=None,

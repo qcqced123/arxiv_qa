@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 
 from torch import Tensor
@@ -11,9 +12,9 @@ class CollatorFunc(nn.Module):
 
     @staticmethod
     def forward(batched: List[Dict[str, Tensor]]) -> Dict:
-        labels = [x["labels"] for x in batched]
-        query_index = [x["query_index"] for x in batched]
-        document_index = [x["document_index"] for x in batched]
+        labels = torch.as_tensor([x["labels"] for x in batched])
+        query_index = torch.as_tensor([[x["query_index"]] for x in batched])
+        document_index = torch.as_tensor([[x["document_index"]] for x in batched])
         input_ids = pad_sequence([x["input_ids"] for x in batched], batch_first=True, padding_value=0)
         attention_mask = pad_sequence([x["attention_mask"] for x in batched], batch_first=True, padding_value=0)
         return {
