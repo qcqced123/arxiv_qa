@@ -523,8 +523,10 @@ class TextGenerationTuner:
         """ Function for init backbone's configuration & insert utils setting,
         The design is inspired by the Builder Pattern
         """
-        retriever = get_encoder(self.cfg.retriever)
-        retriever.to(self.cfg.device)
+        retriever = None
+        if self.cfg.pipeline_type == 'inference':
+            retriever = get_encoder(self.cfg.retriever)
+            retriever.to(self.cfg.device)
 
         model = getattr(task, self.cfg.task)(self.cfg)
 
@@ -603,7 +605,6 @@ class TextGenerationTuner:
         model: nn.Module,
         max_new_tokens: int,
         max_length: int,
-        return_full_text: bool = False,
         query: str = None,
         context: str = None,
         prompt: str = None,
@@ -635,20 +636,14 @@ class TextGenerationTuner:
         """
         prompt = prompt if prompt is not None else f"context:{context}\nquery:{query}"
 
-        batch_inference = False
         inputs = self.tokenizer(prompt, return_tensors='pt')
-        for k, v in inputs.item():
-            inputs[k] = v.to(self.cfg.device)
-
-        if not batch_inference:  # not necessary for inferencing only single data instance
-            del inputs['attention_mask']
+        for k, v in inputs.items():
+            inputs[k] = torch.as_tensor(v)
 
         output = model.model.generate(
-            input_ids=inputs['input_ids'],
-            attention_mask=inputs['attention_mask'] if inputs['attention_mask'] is not None else None, # for generation with mini-batch
+            input_ids=inputs['input_ids'].to(self.cfg.device),
             max_new_tokens=max_new_tokens,
             # max_length=max_length,
-            return_full_text=return_full_text,
             num_beams=num_beams,
             temperature=temperature,
             do_sample=do_sample,
@@ -666,7 +661,7 @@ class TextGenerationTuner:
             skip_special_tokens=True,
             clean_up_tokenization_spaces=True
         )
-        return result[len(prompt):]  # for removing the prompt, only return the generated text, maybe remove this logic
+        return result.split("\n\n\n")[-1]
 
 
 class MetricLearningTuner:

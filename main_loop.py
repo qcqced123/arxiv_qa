@@ -185,14 +185,18 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
         for i, row in tqdm(df.iterrows(), total=len(df)):
             title, context = row['title'], row['doc']
-            prompt = f"""title:{title}\ncontext:{context}\n\n
-                    You're a question machine. Read the given title and context above and generate the right question based on given context. Here are some rules for generating the questions:
-                    1. Questions should also be able to capture the features or characteristics of a given context.
-                    2. The purpose of asking you to create questions is to create a dataset of question-document pairs.
-                    3. Please create with purpose and generate creative, informative, and diverse questions.
-                    4. Do not return questions that are too similar to each other, or too general.
-                    5. Please only return the question text, keep the number of questions between 1 and 5 with total length less than 100 tokens.
-                    6. If you want to ask multiple questions, please separate them with spaces without newlines."""
+            prompt = f"""Here are some rules for generating the questions:\n
+            Questions should also be able to capture the features or characteristics of a given text.\n
+            The purpose of asking you to create questions is to create a dataset of question-document pairs.\n
+            Please create with purpose and generate creative, informative, and diverse questions.\n
+            Do not return questions that are too similar to each other, or too general.\n
+            Keep the number of questions between 1 and 5.\n
+            If you want to ask multiple questions, please separate them with spaces without newlines.\n
+            Please do not generate any other context text, only questions.\n
+            generated questions should be in the form of a question, not a statement. example result is below:\n
+            example question:How does editing knowledge in a language model create a "ripple effect" on other related facts or knowledge within the model? What evaluation criteria are proposed to better assess the impact of knowledge editing on related facts in language models?How does the RippleEdits benchmark contribute to understanding the ripple effects of knowledge editing in language models?\n
+            text:{context}\n
+            instruct:You're a question generating machine. Generate the appropriate question based on given text above.\n\n\n"""
 
             questions.append(
                 tuner.inference(
