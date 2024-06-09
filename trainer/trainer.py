@@ -871,7 +871,7 @@ class MetricLearningTuner:
         model: nn.Module,
         val_criterion: nn.Module,
         val_metric_list: List[Callable]
-    ) -> Tuple[float, float, float]:
+    ) -> float:
         """ validation method for sentence(sequence) classification task
         """
         model.eval()
@@ -900,228 +900,27 @@ class MetricLearningTuner:
                 valid_losses.update(loss.item(), batch_size)
                 wandb.log({'<Val Step> Valid Loss': valid_losses.avg})
 
-        return valid_losses.avg
-
-
-class SequenceClassificationTuner:
-    """ Trainer class for baseline fine-tune pipeline, such as text classification, sequence labeling, etc.
-
-    Text Generation, Question Answering, Text Similarity and so on are not supported on this class
-    They may be added another module, inherited from this class
-    """
-    def __init__(self, cfg: CFG, generator: torch.Generator) -> None:
-        self.cfg = cfg
-        self.fold_value = 3  # you can change any other value: range 0 to 9
-        self.generator = generator
-        self.model_name = self.cfg.model_name
-        self.tokenizer = self.cfg.tokenizer
-        self.metric_list = self.cfg.metrics
-
-    def make_batch(self) -> Tuple[DataLoader, DataLoader, int]:
-        base_path = './dataset_class/data_folder/'
-        df = load_all_types_dataset(base_path + self.cfg.domain + 'insert.csv')
-
-        train = df[df['fold'] != self.fold_value]
-        valid = df[df['fold'] == self.fold_value]
-
-        train_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, train)
-        valid_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, valid)
-
-        loader_train = get_dataloader(
-            cfg=self.cfg,
-            dataset=train_dataset,
-            collate_fn=self.cfg.collator,
-            sampler=self.cfg.sampler,
-            generator=self.generator,
-        )
-        loader_valid = get_dataloader(
-            cfg=self.cfg,
-            dataset=valid_dataset,
-            collate_fn=self.cfg.collator,
-            sampler=self.cfg.sampler,
-            generator=self.generator,
-            shuffle=False,
-            drop_last=False
-        )
-        return loader_train, loader_valid, len(train)
-
-    def model_setting(self, len_train: int):
-        """ Function for init backbone's configuration & insert utils setting,
-        The design is inspired by the Builder Pattern
-        """
-        model = getattr(task, self.cfg.task)(self.cfg)
-
-        # load checkpoint when you set 'resume' to True
-        if self.cfg.resume:
-            model.load_state_dict(
-                torch.load(self.cfg.checkpoint_dir + self.cfg.state_dict),
-                strict=False
-            )
-        model.to(self.cfg.device)
-
-        criterion = getattr(loss, self.cfg.loss_fn)(self.cfg.reduction)
-        val_criterion = getattr(loss, self.cfg.val_loss_fn)(self.cfg.reduction)
-        val_metric_list = [getattr(metric, f'{metrics}') for metrics in self.metric_list]
-
-        grouped_optimizer_params = get_optimizer_grouped_parameters(
-            model,
-            self.cfg.layerwise_lr,
-            self.cfg.weight_decay,
-            self.cfg.layerwise_lr_decay
-        )
-
-        optimizer = getattr(transformers, self.cfg.optimizer)(
-            params=grouped_optimizer_params,
-            lr=self.cfg.layerwise_lr,
-            eps=self.cfg.adam_epsilon,
-            correct_bias=not self.cfg.use_bertadam
-        )
-        lr_scheduler = get_scheduler(self.cfg, optimizer, len_train)
-
-        # init SWA Module
-        swa_model, swa_scheduler = None, None
-        if self.cfg.swa:
-            swa_model = AveragedModel(model)
-            swa_scheduler = get_swa_scheduler(self.cfg, optimizer)
-
-        # init AWP Module
-        awp = None
-        if self.cfg.awp:
-            awp = AWP(
-                model,
-                criterion,
-                optimizer,
-                self.cfg.awp,
-                adv_lr=self.cfg.awp_lr,
-                adv_eps=self.cfg.awp_eps
-            )
-        return model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler
-
-    def train_val_fn(
-        self,
-        loader_train,
-        model: nn.Module,
-        criterion: nn.Module,
-        optimizer,
-        scheduler,
-        loader_valid,
-        val_criterion: nn.Module,
-        val_metric_list: List[Callable],
-        val_score_max: float,
-        val_score_max_2: float,
-        epoch: int,
-        awp: nn.Module = None,
-        swa_model: nn.Module = None,
-        swa_start: int = None,
-        swa_scheduler=None
-    ) -> Tuple[Any, Union[float, ndarray, ndarray]]:
-        """ insert method with step-level validation
-        """
-        losses = AverageMeter()
-        scaler = torch.cuda.amp.GradScaler(enabled=self.cfg.amp_scaler)
-
-        model.train()
-        for step, batch in enumerate(tqdm(loader_train)):
-            optimizer.zero_grad(set_to_none=True)
-            inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k != 'labels'}
-            labels = batch['labels'].to(self.cfg.device, non_blocking=True)
-
-            batch_size = labels.size(0)
-            with torch.cuda.amp.autocast(enabled=self.cfg.amp_scaler):
-                logit = model(inputs)
-                loss = criterion(logit.view(-1, self.cfg.num_labels), labels.view(-1))
-
-            if self.cfg.n_gradient_accumulation_steps > 1:
-                loss = loss / self.cfg.n_gradient_accumulation_steps
-
-            scaler.scale(loss).backward()
-            losses.update(loss.item(), batch_size)
-
-            if self.cfg.clipping_grad and (step + 1) % self.cfg.n_gradient_accumulation_steps == 0 or self.cfg.n_gradient_accumulation_steps == 1:
-                scaler.unscale_(optimizer)
-                grad_norm = torch.nn.utils.clip_grad_norm(
-                    model.parameters(),
-                    self.cfg.max_grad_norm * self.cfg.n_gradient_accumulation_steps
-                )
-                scaler.step(optimizer)
-                scaler.update()
-                scheduler.step()
-
-            # logging insert loss, gradient norm, lr to wandb
-            lr = scheduler.get_lr()[0]
-            grad_norm = grad_norm.detach().cpu().numpy()
-
-            wandb.log({
-                '<Per Step> Total Train Loss': losses.avg,
-                '<Per Step> Gradient Norm': grad_norm,
-                '<Per Step> lr': lr,
-            })
-
-            # step-level validation
-            if ((step + 1) % self.cfg.val_check == 0) or ((step + 1) == len(loader_train)):
-                d_valid_loss, s_valid_loss, c_valid_loss = self.valid_fn(
-                    loader_valid,
-                    model,
-                    val_criterion,
-                    val_metric_list
-                )
-                valid_loss = d_valid_loss + s_valid_loss + c_valid_loss
-                if val_score_max >= valid_loss:
-                    print(f'[Update] Total Valid Score : ({val_score_max:.4f} => {valid_loss:.4f}) Save Parameter')
-                    print(f'Total Best Score: {valid_loss}')
-                    torch.save(
-                        model.model.student.state_dict(),
-                        f'{self.cfg.checkpoint_dir}DistilBERT_Student_{self.cfg.mlm_masking}_{self.cfg.max_len}_{self.cfg.module_name}_state_dict.pth'
-                    )
-                    val_score_max = valid_loss
-        return losses.avg * self.cfg.n_gradient_accumulation_steps, val_score_max
-
-    def valid_fn(
-        self,
-        loader_valid,
-        model: nn.Module,
-        val_criterion: nn.Module,
-        val_metric_list: List[Callable]
-    ) -> Tuple[float, float, float]:
-        """ validation method for sentence(sequence) classification task
-        """
-        valid_losses = AverageMeter()
-        y_pred, y_true = np.array([]), np.array([])
-        valid_metrics = {self.metric_list[i]: AverageMeter() for i in range(len(self.metric_list))}
-
-        model.eval()
-        with torch.no_grad():
-            for step, batch in enumerate(tqdm(loader_valid)):
-                inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k != 'labels'}
-                labels = batch['labels'].to(self.cfg.device, non_blocking=True)
-
-                batch_size = labels.size(0)
-
-                logit = model(inputs)
-                flat_logit, flat_label = logit.view(-1, self.cfg.num_labels), labels.view(-1)
-                loss = val_criterion(flat_logit, flat_label)
-
-                valid_losses.update(loss.item(), batch_size)
-                wandb.log({'<Val Step> Valid Loss': valid_losses.avg})
-
-                flat_logit, flat_label = flat_logit.detach().cpu().numpy(), flat_label.detach().cpu().numpy()
-                y_pred, y_true = np.append(y_pred, np.argmax(flat_logit, axis=-1)), np.append(y_true, flat_label)
-                for i, metric_fn in enumerate(val_metric_list):
-                    scores = metric_fn(
-                        flat_label,
-                        flat_logit,
-                        self.cfg
-                    )
-                    valid_metrics[self.metric_list[i]].update(scores, batch_size)
-                    wandb.log({
-                        f'<Val Step> Valid {self.metric_list[i]}': valid_metrics[self.metric_list[i]].avg,
-                    })
-
-                # plotting confusion matrix to wandb
-                wandb.log({'<Val Step> Valid confusion matrix:': wandb.plot.confusion_matrix(
-                    probs=None,
-                    y_true=y_true,
-                    preds=y_pred,
-                    class_names=[f"Rating {i + 1}" for i in range(self.cfg.num_labels)]
-                )})
+                # y_pred, y_true = np.array([]), np.array([])
+                # valid_metrics = {self.metric_list[i]: AverageMeter() for i in range(len(self.metric_list))}
+                #
+                # flat_logit, flat_label = flat_logit.detach().cpu().numpy(), flat_label.detach().cpu().numpy()
+                # y_pred, y_true = np.append(y_pred, np.argmax(flat_logit, axis=-1)), np.append(y_true, flat_label)
+                # for i, metric_fn in enumerate(val_metric_list):
+                #     scores = metric_fn(
+                #         flat_label,
+                #         flat_logit,
+                #         self.cfg
+                #     )
+                #     valid_metrics[self.metric_list[i]].update(scores, batch_size)
+                #     wandb.log({
+                #         f'<Val Step> Valid {self.metric_list[i]}': valid_metrics[self.metric_list[i]].avg,
+                #     })
+                #
+                # # plotting confusion matrix to wandb
+                # wandb.log({'<Val Step> Valid confusion matrix:': wandb.plot.confusion_matrix(
+                #     probs=None,
+                #     y_true=y_true,
+                #     preds=y_pred,
+                #     class_names=[f"Rating {i + 1}" for i in range(self.cfg.num_labels)]
+                # )})
         return valid_losses.avg
