@@ -253,17 +253,18 @@ class MetricLearningModel(nn.Module, AbstractTask):
         if self.cfg.pooling == 'WeightedLayerPooling':  # using all encoder layer's output
             features = h.hidden_states
 
+        # for calculating the arcface loss, multiple negative ranking loss
         query_h = self.pooling(
             last_hidden_state=features,
             mask=self.get_mask(features=features, mask_type='query', query_index=query_index),
             p=self.cfg.pow_value
-        )  # for calculating the arcface loss, multiple negative ranking loss
-
+        )
+        # for calculating the arcface loss, multiple negative ranking loss
         context_h = self.pooling(
             last_hidden_state=features,
             mask=self.get_mask(features, mask_type='context', query_index=query_index, context_index=context_index),
             p=self.cfg.pow_value
-        )  # for calculating the arcface loss, multiple negative ranking loss
+        )
         return query_h, context_h
 
 

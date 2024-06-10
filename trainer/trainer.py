@@ -879,6 +879,7 @@ class MetricLearningTuner:
         model.eval()
         valid_losses = AverageMeter()
         mnrl = MultipleNegativeRankingLoss()  # initialize the multiple negative ranking loss instance
+        valid_metrics = {self.metric_list[i]: AverageMeter() for i in range(len(self.metric_list))}
         with torch.no_grad():
             for step, batch in enumerate(tqdm(loader_valid)):
                 inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k in ["input_ids", "attention_mask"]}
@@ -902,27 +903,17 @@ class MetricLearningTuner:
                 valid_losses.update(loss.item(), batch_size)
                 wandb.log({'<Val Step> Valid Loss': valid_losses.avg})
 
-                # y_pred, y_true = np.array([]), np.array([])
-                # valid_metrics = {self.metric_list[i]: AverageMeter() for i in range(len(self.metric_list))}
-                #
-                # flat_logit, flat_label = flat_logit.detach().cpu().numpy(), flat_label.detach().cpu().numpy()
-                # y_pred, y_true = np.append(y_pred, np.argmax(flat_logit, axis=-1)), np.append(y_true, flat_label)
-                # for i, metric_fn in enumerate(val_metric_list):
-                #     scores = metric_fn(
-                #         flat_label,
-                #         flat_logit,
-                #         self.cfg
-                #     )
-                #     valid_metrics[self.metric_list[i]].update(scores, batch_size)
-                #     wandb.log({
-                #         f'<Val Step> Valid {self.metric_list[i]}': valid_metrics[self.metric_list[i]].avg,
-                #     })
-                #
-                # # plotting confusion matrix to wandb
-                # wandb.log({'<Val Step> Valid confusion matrix:': wandb.plot.confusion_matrix(
-                #     probs=None,
-                #     y_true=y_true,
-                #     preds=y_pred,
-                #     class_names=[f"Rating {i + 1}" for i in range(self.cfg.num_labels)]
-                # )})
+                # we calculate the top-1 accuracy for each batch instance
+                # for calculating the top-1 accuracy
+                queries, contexts = query_h.detach().numpy(), context_h.detach().numpy()
+                for i, metric_fn in enumerate(val_metric_list):
+                    scores = metric_fn(
+                        query=queries,
+                        document=contexts,
+                        k=1
+                    )
+                    valid_metrics[self.metric_list[i]].update(scores, batch_size)
+                    wandb.log({
+                        f'<Val Step> Valid {self.metric_list[i]}': valid_metrics[self.metric_list[i]].avg,
+                    })
         return valid_losses.avg

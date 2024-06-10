@@ -1,3 +1,4 @@
+import faiss
 import numpy as np
 import torch.nn as nn
 import configuration as configuration
@@ -6,9 +7,36 @@ from typing import Tuple, List, Dict
 from collections import Counter
 
 
+def top_k_acc(query: np.ndarray, document: np.ndarray, k: int) -> float:
+    """ top k accuracy for semantic similarity task, such as IR, Text Similarity, Paraphrase, Question-Answering
+    using the cosine similarity between two vectors, we can calculate the top k accuracy with FAISS KNN
+
+    Args:
+        query: np.ndarray, shape of [batch, dim]
+        document: np.ndarray, shape of [batch, dim]
+        k: int, default is 1, which is meaning of the number of top k accuracy
+
+    Returns:
+        top_k_acc: float, top k accuracy for semantic similarity task
+
+
+    workflow:
+        1) normalize the query and document vectors
+        2) build the index with document vectors
+        3) search the nearest neighbor with query vectors
+        4) calculate the top k accuracy with the index of nearest neighbor
+    """
+    faiss.normalize_L2(query)
+    faiss.normalize_L2(document)
+
+    index = faiss.IndexFlatIP(document.shape[-1])
+    index.add(document)
+    distance, idx = index.search(query, k=1)
+    return np.mean(idx == np.arange(len(query)).reshape(-1, 1))
+
+
 def accuracy(y_true: np.array, y_pred: np.array, cfg: configuration.CFG = None) -> float:
     """ accuracy metric function for classification task such as MLM, SentimentAnalysis ... and so on
-
     Args:
         y_true: ground truth, 1D Array for MLM Task (batch_size*sequence)
         y_pred: prediction, must be 2D Array for MLM Task (batch_size*sequence, vocab size)
@@ -18,16 +46,6 @@ def accuracy(y_true: np.array, y_pred: np.array, cfg: configuration.CFG = None) 
     pred = np.argmax(y_pred, axis=-1)  # return index of max value
     correct += np.sum(pred == y_true).item()
     return round(correct / len_label, 4)
-
-
-def top_k_acc(y_true: np.array, y_pred: np.array, k: int = 3) -> float:
-    """ top k accuracy """
-    correct = 0
-    pred = np.topk(y_pred, k, dim=1)[1]
-    assert pred.shape[0] == len(y_true)
-    for i in range(k):
-        correct += np.sum(pred[pred[:, i] == y_true]).item()
-    return round(correct / len(y_true), 4)
 
 
 def pearson_score(y_true: np.array, y_pred: np.array) -> float:
