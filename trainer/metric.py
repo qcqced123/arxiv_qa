@@ -3,7 +3,7 @@ import numpy as np
 import torch.nn as nn
 import configuration as configuration
 from torch import Tensor
-from typing import Tuple, List, Dict
+from typing import List
 from collections import Counter
 
 
@@ -18,7 +18,6 @@ def top_k_acc(query: np.ndarray, document: np.ndarray, k: int) -> float:
 
     Returns:
         top_k_acc: float, top k accuracy for semantic similarity task
-
 
     workflow:
         1) normalize the query and document vectors

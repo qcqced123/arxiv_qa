@@ -18,10 +18,16 @@ def youtube_script_api(url_path: str) -> str:
 
     Args:
         url_path (str): The YouTube video URL for extracting the script
+
+    Notes:
+        you must pass the list of language options for setting language argument in get_transcript()
+        (LANGUAGE = ['ko', 'en', ... ''])
+
+
     """
     output = ''
     try:
-        video_id = url_path.replace('https://www.youtube.com/watch?v=', '')
+        video_id = url_path.replace('https://www.youtube.com/watch?v=', '')  # get video id from youtube
         transcript = YouTubeTranscriptApi.get_transcript(video_id, languages=LANGUAGE)
         for x in transcript:
             sentence = x['text']
@@ -34,7 +40,7 @@ def youtube_script_api(url_path: str) -> str:
 
 
 if __name__ == "__main__":
-    url = 'https://www.youtube.com/watch?v=b_2v9Hpfnbw&ab_channel=NicholasBroad'
+    url = 'https://www.youtube.com/watch?v=RXeOiIDNNek&ab_channel=Apple'
 
     text = youtube_script_api(url)
     print(f"YouTube Script: {text}")

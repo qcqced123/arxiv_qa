@@ -1,6 +1,6 @@
 LANGUAGE = [
-    'en',
     'ko',
+    'en',
     'fr',
     'ar',
     'de',
