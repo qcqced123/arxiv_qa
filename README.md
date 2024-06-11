@@ -33,4 +33,4 @@ This project is a QA system for arxiv papers. The system is designed to answer q
     - dimension of hidden state: 384
 
 ## 📚 System Architecture
-![Image Description](assets/images/white_rag_pipeline.drawio.png)
+![Image Description](assets/images/rag_pipeline.drawio.png)
