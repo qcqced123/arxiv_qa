@@ -4,13 +4,13 @@ This project is a QA system for arxiv papers. The system is designed to answer q
 
 - **🔭 Query Encoder/Document Encoder (Retriever)**
   - library: sentence_transformers, transformers, torch
-  - foundation model: sentence-transformers/all-MiniLM-L6-v2
-  - fine-tune method: metric learning (arcface, contrastive loss, multiple negative ranking loss)
+  - foundation model: allenai/longformer-base-4096, sentence-transformers/all-MiniLM-L6-v2
+  - fine-tune method: Combined Metric Learning (Two ArcFace Head & One Multiple Negative Ranking Loss) (explain)
   - fine-tune dataset: question-document relation dataset (custom made) (explain, download)
 
 - **🧠 Generator**
   - library: transformers, torch
-  - foundation model: meta-llama/Meta-Llama-3-8B
+  - foundation model: microsoft/Phi-3-mini-128k-instruct
   - fine-tune method: casual language modeling
   - fine-tune dataset: chunked document from arxiv papers (explain, download)
 
@@ -19,7 +19,6 @@ This project is a QA system for arxiv papers. The system is designed to answer q
   - strategy:
     - split the document into each elements by using unstructured
       - Title, NarrativeText, Formula, Table, FigureCaption
-    
     - apply the process of each elements:
       - Title & NarrativeText: add the title and narrative text as a single chunk with appropriate seperator (it will be re-split into multiple chunks in the Recursive Chunking Strategy in langchain)
       - Formula: convert python math expression string to latex style code
@@ -32,7 +31,6 @@ This project is a QA system for arxiv papers. The system is designed to answer q
   - retrieve(search) method: knn (ElasticSearch.knn_search)
     - distance metric: cosine similarity
     - dimension of hidden state: 384
-
 
 ## 📚 System Architecture
 ![Image Description](assets/images/white_rag_pipeline.drawio.png)
