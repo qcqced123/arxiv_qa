@@ -23,7 +23,7 @@ from configuration import CFG
 from model import model as task
 from model import mlm, clm, sbo
 
-from db.run_db import get_encoder, search_candidates
+from db.run_db import get_encoder
 from dataset_class.preprocessing import dataset_split, load_all_types_dataset
 
 from trainer.loss import MultipleNegativeRankingLoss
@@ -37,7 +37,7 @@ class PreTrainTuner:
     So, if you want set options, go to cfg.json file or configuration.py
 
     Args:
-        cfg: configuration module, confriguration.py
+        cfg: configuration module, configurations.py
         generator: torch.Generator, for init pytorch random seed
     """
     def __init__(self, cfg: CFG, generator: torch.Generator) -> None:
