@@ -11,6 +11,13 @@ from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 from tqdm.auto import tqdm
 from typing import List, Tuple, Dict, Callable, Any
 
+from autocorrect import Speller
+from spellchecker import SpellChecker
+from nltk.tokenize import word_tokenize
+
+speller = Speller(lang='en')
+spellchecker = SpellChecker()
+
 
 def hf_load_dataset(cfg: configuration.CFG) -> DatasetDict:
     """ Load dataset from Huggingface Datasets
@@ -319,13 +326,12 @@ def subsequent_decode(cfg: configuration.CFG, token_list: List) -> Any:
     return output
 
 
-def sequence_length(cfg: configuration.CFG, text_list: List) -> List:
-    """ Get sequence length of all text data for checking statistics value
-    """
+def sequence_length(cfg, text_list: list) -> list:
+    """ Get sequence length of all text data for checking statistics value """
     length_list = []
     for text in tqdm(text_list):
         tmp_text = tokenizing(cfg, text)['attention_mask']
-        length_list.append(torch.eq(tmp_text, 1))
+        length_list.append(tmp_text.count(1))
     return length_list
 
 
@@ -349,48 +355,40 @@ def load_data(data_path: str) -> pd.DataFrame:
     return df
 
 
-def no_char(text):
-    text = re.sub(r"\s+[a-zA-Z]\s+", " ", text)
-    text = re.sub(r"\^[a-zA-Z]\s+", " ", text)
-    text = re.sub(r"\s+[a-zA-Z]$", " ", text)
-    return text
+def spelling(text: str, spellchecker: SpellChecker) -> int:
+    """ return number of mis-spelling words in original text """
+    wordlist = text.split()
+    amount_miss = len(list(spellchecker.unknown(wordlist)))
+    return amount_miss
+
+
+def add_spelling_dictionary(tokens: List[str], spellchecker: SpellChecker, speller: Speller) -> None:
+    """dictionary update for py-spell checker and autocorrect"""
+    spellchecker.word_frequency.load_words(tokens)
+    speller.nlp_data.update({token: 1000 for token in tokens})
+
+
+def spell_corrector(df: pd.DataFrame, spellchecker: SpellChecker = spellchecker, speller: Speller = speller) -> None:
+    """ correct mis-spell words in summaries text """
+    df['full_text_tokens'] = df['full_text'].progress_apply(lambda x: word_tokenize(x))
+    df['full_text_tokens'].progress_apply(lambda x: add_spelling_dictionary(x, spellchecker, speller))
+    df['fixed_full_text'] = df['full_text'].progress_apply(lambda x: speller(x))
 
 
 def no_multi_spaces(text):
     return re.sub(r"\s+", " ", text, flags=re.I)
 
 
-def underscore_to_space(text: str):
-    text = text.replace("_", " ")
-    text = text.replace("-", " ")
-    return text
-
-
-def emoji2text(text: str) -> str:
-    """ Convert emoji to text
-    """
-    text = emoji.demojize(text)
-    return text
-
-
-def preprocess_text(source):
-    """ Remove all the special characters
-    """
-    source = re.sub(r'\W', ' ', str(source))
-    source = re.sub(r'^b\s+', '', source)
-    source = source.lower()
-    return source
-
-
-def cleaning_words(text: str) -> str:
-    """ Apply all of cleaning process to text data
-    """
-    tmp_text = emoji2text(text)
-    tmp_text = underscore_to_space(tmp_text)
-    tmp_text = no_char(tmp_text)
-    tmp_text = preprocess_text(tmp_text)
-    tmp_text = no_multi_spaces(tmp_text)
-    return tmp_text
+def cleaning_words(text):
+    text = re.sub(r"[^\w\s.,!?\"'\-]", "", text)  # remove the not sentence symbol
+    text = re.sub(r"<[^>]+>", "", text)  # remove markdown code
+    text = re.sub(r"\[.*?\]\(.*?\)", "", text)  # remove markdown link text
+    text = re.sub(r"\*\*.*?\*\*", "", text)  # remove makrdown bold
+    text = re.sub(r"\#.*?\n", "", text)  # remove header of markdown
+    text = re.sub(r"[\U0001F600-\U0001F64F]", "", text)  # remove emoji
+    text = re.sub(r"\s+", " ", text, flags=re.I)
+    emoji.demojize(text)
+    return text.lower()
 
 
 def split_token(inputs: str) -> List:
