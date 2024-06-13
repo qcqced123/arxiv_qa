@@ -222,6 +222,7 @@ class MetricLearningModel(nn.Module, AbstractTask):
 
     @staticmethod
     def get_mask(features: Tensor, mask_type: str, query_index: Tensor, context_index: Tensor = None) -> Tensor:
+        """ return the mask for separating the query and context sentence embedding """
         mask = None
         batch_size, seq_length, hidden_size = features.size()
         if mask_type == 'query':
