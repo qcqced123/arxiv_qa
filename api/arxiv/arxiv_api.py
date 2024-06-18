@@ -8,8 +8,7 @@ from dataset_class.preprocessing import load_all_types_dataset
 
 
 def set_sorting(sorting: str = 'relevance') -> object:
-    """
-    Set the sorting criterion for the search results.
+    """ Set the sorting criterion for the search results.
 
     if you pass argument sorting example below:
         relevance: arxiv.SortCriterion.Relevance
@@ -18,8 +17,10 @@ def set_sorting(sorting: str = 'relevance') -> object:
     Args:
         sorting: default str, sorting criterion for the search results,
                  Possible values are: 'relevance', 'lastUpdatedDate', 'submittedDate'
+
     Returns:
         arxiv.SortCriterion: object, sorting criterion for the search results
+
     """
     if sorting == 'relevance':
         return arxiv.SortCriterion.Relevance
@@ -35,6 +36,7 @@ def main_loop(queries: List[str], data_type: str = 'insert', max_results: int = 
     """ main loop function for downloading query output from arxiv
 
     this function will download the paper named change 2110.03353v1 into it's title
+
     Usage:
         queries: 'iclr2020', 'ELECTRA', 'NLP', 'Transformer' ...
         max_results: 10, 20, 30, 40, 50 ...
@@ -54,7 +56,7 @@ def main_loop(queries: List[str], data_type: str = 'insert', max_results: int = 
     """
     for query in tqdm(queries):
         try:
-            client = arxiv.Client(page_size=1000, delay_seconds=2, num_retries=3)
+            client = arxiv.Client(page_size=50, delay_seconds=10, num_retries=3)
             result = client.results(
                 arxiv.Search(query=query, max_results=max_results, sort_by=sorting)
             )
@@ -90,7 +92,7 @@ if __name__ == '__main__':
     standard = 'relevance'
     values = set_sorting(sorting=standard)
 
-    n_jobs = 4
+    n_jobs = 2
     query = remove_exist_paper_list()
     chunked = [query[i:i + len(query)//n_jobs] for i in range(0, len(query), len(query)//n_jobs)]
     resume_chunked = [chunk for chunk in chunked]
