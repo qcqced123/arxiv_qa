@@ -80,8 +80,14 @@ def main_loop(queries: List[str], data_type: str = 'insert', max_results: int = 
 
 def remove_exist_paper_list():
     query = pd.read_csv('./paper_id_list.csv').paper_id.tolist()  # next time, start at 430~2500
-    exist_list = load_all_types_dataset('./exist_list.pkl.pkl')
-    query = list(set(query) - set(exist_list))
+
+    try:
+        exist_list = load_all_types_dataset('./exist_list.pkl.pkl')
+        query = list(set(query) - set(exist_list))
+
+    except FileNotFoundError as e:
+        pass
+
     return query
 
 
@@ -92,7 +98,7 @@ if __name__ == '__main__':
     standard = 'relevance'
     values = set_sorting(sorting=standard)
 
-    n_jobs = 2
+    n_jobs = 4
     query = remove_exist_paper_list()
     chunked = [query[i:i + len(query)//n_jobs] for i in range(0, len(query), len(query)//n_jobs)]
     resume_chunked = [chunk for chunk in chunked]
