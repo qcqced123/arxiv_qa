@@ -3,15 +3,14 @@ import pandas as pd
 import openai
 import google.generativeai as genai
 
-from collections import defaultdict
-from typing import List, Dict, Any
 from tqdm.auto import tqdm
 from dotenv import load_dotenv
+from typing import List, Dict
+from collections import defaultdict
 from transformers import AutoTokenizer
-from multiprocessing import Pool
-from dataset_class.preprocessing import cleaning_words, split_longer_text_with_sliding_window, save_pkl, load_pkl
 from langchain_community.document_loaders import UnstructuredPDFLoader
 from langchain_community.document_loaders.image import UnstructuredImageLoader
+from dataset_class.preprocessing import cleaning_words, split_longer_text_with_sliding_window, save_pkl, load_pkl
 
 
 load_dotenv()
