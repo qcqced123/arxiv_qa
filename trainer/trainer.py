@@ -639,6 +639,9 @@ class TextGenerationTuner:
         print(f"current batch instance's prompt: {prompt}")
 
         inputs = self.tokenizer(prompt, return_tensors='pt')
+
+        print(f"current batch instance's prompt's sequence length is: {len(inputs['input_ids'])}")
+
         for k, v in inputs.items():
             inputs[k] = torch.as_tensor(v)
 
