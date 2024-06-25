@@ -10,7 +10,7 @@
     "generate_options": {
         "model_name": "microsoft/Phi-3-mini-128k-instruct",
         "tokenizer_name": "microsoft/Phi-3-mini-128k-instruct",
-        "max_len": 131072,
+        "max_len": 6144,
         "max_new_tokens": 256,
         "strategy": "beam",
         "num_beams": 2,
