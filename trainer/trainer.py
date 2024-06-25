@@ -640,6 +640,7 @@ class TextGenerationTuner:
 
         inputs = self.tokenizer(prompt, return_tensors='pt')
 
+        print(f"current batch instance prompt input ids is: {inputs['input_ids']}")
         print(f"current batch instance's prompt's sequence length is: {len(inputs['input_ids'])}")
 
         for k, v in inputs.items():
