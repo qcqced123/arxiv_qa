@@ -636,6 +636,8 @@ class TextGenerationTuner:
         """
         prompt = prompt if prompt is not None else f"context:{context}\nquery:{query}"
 
+        print(f"current batch instance's prompt: {prompt}")
+
         inputs = self.tokenizer(prompt, return_tensors='pt')
         for k, v in inputs.items():
             inputs[k] = torch.as_tensor(v)
@@ -655,12 +657,14 @@ class TextGenerationTuner:
             no_repeat_ngram_size=no_repeat_ngram_size,
             use_cache=use_cache,
         )
+        print(f"current batch instance's generated sequence: {output[0]}")
         # output has nested tensor, so we need to flatten it for decoding
         result = self.tokenizer.decode(
             output[0],
             skip_special_tokens=True,
             clean_up_tokenization_spaces=True
         )
+        print(f"current batch instance's generated sequence: {result}")
         return result
 
 
