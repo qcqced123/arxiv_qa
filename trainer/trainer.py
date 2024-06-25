@@ -639,6 +639,7 @@ class TextGenerationTuner:
         inputs = self.tokenizer(
             prompt,
             max_length=max_length,
+            truncation=True,
             return_tensors='pt'
         )
         for k, v in inputs.items():
