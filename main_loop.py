@@ -186,7 +186,11 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         modules = get_necessary_module_for_generation_in_local(cfg, es, g)
         tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
         for i, row in tqdm(df.iterrows(), total=len(df)):
-            prompt = get_prompt_for_question_generation(context=row['doc'])
+            context = cut_context(
+                cfg=cfg,
+                context=row['doc']
+            )
+            prompt = get_prompt_for_question_generation(context=context)
             questions.append(
                 tuner.inference(
                     model=generator,
