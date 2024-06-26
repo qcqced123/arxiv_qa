@@ -22,7 +22,7 @@ from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
 from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
-from generate_question.generate_question import get_necessary_module_for_generation_in_local, google_gemini_api, postprocess
+from generate_question.generate_question import get_necessary_module_for_generation_in_local, postprocess
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
 
