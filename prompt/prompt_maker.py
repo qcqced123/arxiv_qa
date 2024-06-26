@@ -31,7 +31,7 @@ Context 1:
 Context:
 "Extreme weather events due to climate change are increasing. This is causing significant damage to agricultural productivity."
 
-Example Question 1: 
+Example Question 1:
 "What are the main impacts of climate change on agricultural productivity?"
 
 Context 2:
@@ -39,7 +39,7 @@ Context 2:
 Context:
 "As remote work becomes more widespread globally, companies are seeking effective collaboration tools. These tools play a crucial role in enhancing communication and cooperation among teams."
 
-Example Question 2: 
+Example Question 2:
 "Why are effective collaboration tools important in a remote work environment?"
 
 Your Task:
@@ -47,11 +47,11 @@ Your Task:
 For given context from Context 3, generate questions based on the specific guidelines provided.
 Generate appropriate questions according to the given context from Context 3 only and guidelines.
 Keep the number of questions between 1 and 3.
-Separate the questions you want to create with newlines 
+Separate the questions you want to create with newlines
 
 Context 3:
 
-Context: 
+Context:
 {context}
 
 Your Question:

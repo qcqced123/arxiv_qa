@@ -3,7 +3,6 @@ import time
 import torch
 import random
 import pandas as pd
-import torch.nn as nn
 import google.generativeai as genai
 
 from tqdm.auto import tqdm
@@ -46,7 +45,9 @@ def get_necessary_module(cfg: CFG) -> Dict[str, Any]:
 
 
 def postprocess(output: str) -> str:
-    """ function for postprocessing the output text from question generation model
+    """ function for postprocessing the output text from question generation model,
+
+    extracting the questions from the output text
 
     Args:
         output (str): output text from the question generation model, containing the generated questions

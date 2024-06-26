@@ -475,7 +475,7 @@ class CLMTuner(PreTrainTuner):
 
 
 class TextGenerationTuner:
-    """ Fine-tune class for Text Generation, Summarization
+    """ inference pipeline module for text generation, generative text summarization task
 
     Args:
         cfg: configuration module, confriguration.py

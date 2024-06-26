@@ -175,7 +175,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             df.to_csv(output_path, index=False)
 
         elif cfg.work_flow_state == "resume":
-            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/sampling_metric_learning_total_paper_chunk.csv')
+            df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/sampling_metric_learning_total_paper_chunk.csv')[670:675]
 
         # branch of question generation
         # you can choose any other generator llm in huggingface model hub (currently google gemini api does not support)
