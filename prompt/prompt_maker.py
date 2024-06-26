@@ -4,6 +4,26 @@ and retrieval augmented generation task
 """
 
 
+def cut_context(cfg, context: str) -> str:
+    """ function for cutting the context to make it shorter
+
+    handling the problem that the context is too long to be used in the prompt,
+    so question generation part of the context is cut and model doesn't generate questions for the whole context
+
+    we use the tokenizer to cut the context to the maximum length of the mode and then decode it to the text
+
+    Args:
+        cfg: configuration object for the project, getting tokenizer object, other config values
+        context: str, the context to be cut
+
+    Returns:
+        cut_context: str, the cut context
+    """
+    return cfg.tokenizer.decode(
+        cfg.tokenizer(context, max_length=5120, truncation=True, add_special_tokens=False)
+    )
+
+
 def get_prompt_for_question_generation(context: str) -> str:
     """ return the prompt for question generation task
     prompt from this function is made by following the Few-Shot Prompt-Based Learning for Question Generation task

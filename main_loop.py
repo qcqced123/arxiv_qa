@@ -16,6 +16,7 @@ from utils.util import sync_config
 from utils.helper import check_library, all_type_seed
 
 from configuration import CFG
+from prompt.prompt_maker import cut_context
 from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
