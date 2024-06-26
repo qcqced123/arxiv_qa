@@ -44,27 +44,6 @@ def get_necessary_module(cfg: CFG) -> Dict[str, Any]:
     }
 
 
-# def postprocess(output: str) -> str:
-#     """ function for postprocessing the output text from question generation model,
-#
-#     extracting the questions from the output text
-#
-#     Args:
-#         output (str): output text from the question generation model, containing the generated questions
-#
-#     example:
-#         before = [Question 1: Value1, Question 2: Value2, Question 3: Value3]
-#         after = Value1?\n Value2?\n Value3?\n
-#     """
-#     output = output.split('=====')[1]
-#     start = output.find('Question 1:')
-#     question_list = [text for text in output[start:].split('\n\n') if text.startswith('Question')]
-#     print(f"current question list is: {question_list}")
-#     question = [text.split(': ')[1].strip() + '\n' for text in question_list]
-#     print(f"after postprocess: {question}")
-#     return ''.join(question)
-
-
 def postprocess(output: str) -> str:
     """ function for postprocessing the output text from question generation model,
 
@@ -80,8 +59,8 @@ def postprocess(output: str) -> str:
     output = output.split('=====')[1]
     start = output.find('Question 1:')
 
-    question_list = [text for text in output[start:].split('\n\n') if text.startswith('Question')]
     question = []
+    question_list = [text for text in output[start:].split('\n\n') if text.startswith('Question')]
     for text in question_list:
         try:
             question.append(text.split(': ')[1].strip() + '\n')
