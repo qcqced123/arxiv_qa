@@ -56,10 +56,12 @@ def postprocess(output: str) -> str:
         before = [Question 1: Value1, Question 2: Value2, Question 3: Value3]
         after = Value1?\n Value2?\n Value3?\n
     """
+    print(f"before postprocess: {output}")
     output = output.split('=====')[1]
     start = output.find('Question 1:')
     question_list = [text for text in output[start:].split('\n\n') if text.startswith('Question')]
     question = [text.split(': ')[1].strip() + '\n' for text in question_list]
+    print(f"after postprocess: {question}")
     return ''.join(question)
 
 
