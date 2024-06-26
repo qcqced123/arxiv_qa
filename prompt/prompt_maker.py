@@ -20,7 +20,9 @@ def cut_context(cfg, context: str) -> str:
         cut_context: str, the cut context
     """
     return cfg.tokenizer.decode(
-        cfg.tokenizer(context, max_length=5120, truncation=True, add_special_tokens=False)
+        cfg.tokenizer.encode(context, max_length=5120, truncation=True, add_special_tokens=False),
+        skip_special_tokens=True,
+        clean_up_tokenization_spaces=True
     )
 
 
