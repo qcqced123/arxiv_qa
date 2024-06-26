@@ -211,8 +211,8 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
                 )
             )
         # branch merge point of question generation
-        # save the question data object with pickle
-        save_pkl(questions, 'dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db.pkl')
+        # save the question data object with pickle for backup if current logic will be failed
+        save_pkl(questions, 'dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db')
         df['question'] = [postprocess(question) for question in questions]
 
         output_path = f"dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db.csv"
