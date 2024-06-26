@@ -65,7 +65,7 @@ def postprocess(output: str) -> str:
         try:
             question.append(text.split(': ')[1].strip() + '\n')
 
-        except IndexError as e:
+        except Exception as e:
             continue
 
     return ''.join(question)
