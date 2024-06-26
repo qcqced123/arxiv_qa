@@ -17,12 +17,14 @@ from utils.helper import check_library, all_type_seed
 
 from configuration import CFG
 from prompt.prompt_maker import cut_context
-from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
+from dataset_class.preprocessing import save_pkl
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
+from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
 from generate_question.generate_question import get_necessary_module_for_generation_in_local, google_gemini_api, postprocess
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
+
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
@@ -209,6 +211,8 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
                 )
             )
         # branch merge point of question generation
+        # save the question data object with pickle
+        save_pkl(questions, 'dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db.pkl')
         df['question'] = [postprocess(question) for question in questions]
 
         output_path = f"dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db.csv"
