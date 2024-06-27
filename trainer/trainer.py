@@ -706,7 +706,7 @@ class MetricLearningTuner:
         self.tokenizer = self.cfg.tokenizer
         self.metric_list = self.cfg.metrics
         self.df = load_all_types_dataset(
-            f'./dataset_class/datafolder/arxiv_qa/total/test_q_doc.csv'
+            f'./dataset_class/datafolder/arxiv_qa/total/cleansing_test_generate_question_document_db.csv'
         )
 
     def make_batch(self):

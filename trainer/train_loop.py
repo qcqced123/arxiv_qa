@@ -29,8 +29,8 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     5) Check if this insert loop need to finish, by Early Stopping Object
     """
 
-    sub_name = f""
-    group_name = f"{pipeline_type}/"
+    sub_name = f"{cfg.model_name}"
+    group_name = f"[{pipeline_type}]/"
 
     wandb.init(
         project=cfg.name,
