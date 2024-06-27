@@ -25,7 +25,6 @@ pip-selfcheck.json
 
 # AWS User-specific
 .idea/**/aws.xml
-
 # Generated files
 .idea/**/contentModel.xml
 
@@ -1084,3 +1083,5 @@ cython_debug/
 !/test.ipynb
 *.zip
 *.ipynb
+wandb/latest-run
+/wandb/
