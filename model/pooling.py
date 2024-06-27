@@ -40,6 +40,10 @@ class SubSequenceGEMPooling(nn.Module):
         """
         p_embeddings = torch.pow(last_hidden_state, p)
         valid_token_counts = mask.sum(dim=1)
+
+        print(f"current p_embeddings shape is: {p_embeddings.shape}")
+        print(f"current valid_token_counts shape is: {valid_token_counts.shape}")
+
         sum_embeddings = p_embeddings.sum(dim=1) / valid_token_counts
         gem_embeddings = torch.pow(sum_embeddings, 1. / p)
         return gem_embeddings
