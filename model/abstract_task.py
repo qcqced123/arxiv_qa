@@ -136,7 +136,6 @@ class AbstractTask:
                 self.cfg.model_name,
                 config=config,
                 quantization_config=bit_config,
-                trust_remote_code=True,
             )
 
         # apply lora, qlora

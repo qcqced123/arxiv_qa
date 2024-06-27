@@ -24,7 +24,8 @@
         "init_weight": "kaiming_normal",
         "initializer_range": 0.02,
         "lora": false,
-        "qlora": false,
+        "qlora": true,
+        "task_type": "FEATURE_EXTRACTION",
         "prompt_tuning": false
     },
 
@@ -57,7 +58,7 @@
     },
 
     "gradient_settings": {
-        "amp_scaler": false,
+        "amp_scaler": true,
         "gradient_checkpoint": true,
         "clipping_grad": true,
         "n_gradient_accumulation_steps": 1,
