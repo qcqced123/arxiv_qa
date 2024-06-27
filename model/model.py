@@ -250,6 +250,12 @@ class MetricLearningModel(nn.Module, AbstractTask):
         h = self.feature(inputs)
         features = h.last_hidden_state
 
+        print(f"query_index is: {query_index}")
+        print(f"context_index is: {context_index}")
+
+        print(f"query_index shape is: {query_index.shape}")
+        print(f"context_index shape is: {context_index.shape}")
+
         if self.cfg.pooling == 'WeightedLayerPooling':  # using all encoder layer's output
             features = h.hidden_states
 
