@@ -154,6 +154,12 @@ class AbstractTask:
 
     def apply_peft_lora(self, model: nn.Module) -> nn.Module:
         """ class method for applying peft lora and qlora to pretrained model in fine-tune stage
+        if you want to apply LoRA, QLoRA to your model, please check the model architecture what you want to apply
+        because, when you use model having the quite different object name from original,
+        you must specify the target_modules in LoraConfig. For example, if you want to apply LoRA on Longformer, Bigbird
+        which have the qutie different object name, they cannot be applied by default setting (not specified target_modules)
+
+        In this case, you can use the option named "all-linear" in target_modules argument in LoraConfig
 
         Args:
             model: pretrained model from huggingface model hub
@@ -170,7 +176,7 @@ class AbstractTask:
             https://arxiv.org/abs/2305.14314
         """
         lora_config = LoraConfig(
-            target_modules="all-linear",
+            target_modules="all-linear" if self.cfg.module_name == 'allenai/longformer-base-4096' else None,
             task_type=getattr(TaskType, self.cfg.task_type) if self.cfg.task_type != 'None' else "None",
             inference_mode=False,
             r=self.cfg.lora_rank,  # rank value
