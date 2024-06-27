@@ -70,15 +70,16 @@ class QuestionDocumentMatchingDataset(Dataset):
         cls, sep = self.cfg.tokenizer.cls_token, self.cfg.tokenizer.sep_token
 
         query, document = no_multi_spaces(self.questions[item]), no_multi_spaces(self.documents[item])
-        prompt = f"{cls} " + query + f" {sep} " + document + f" {sep}"
-
+        # prompt = f"{cls} " + query + f" {sep} " + document + f" {sep}"
+        prompt = query + f" {sep} " + document
+        
         batches = self.tokenizer(
                 text=prompt,
                 cfg=self.cfg,
                 max_length=self.cfg.max_len,
                 truncation=True,
                 padding=False,
-                add_special_tokens=False,
+                add_special_tokens=True,
             )
 
         # for input_ids, attention_mask
