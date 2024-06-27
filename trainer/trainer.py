@@ -734,7 +734,7 @@ class MetricLearningTuner:
             shuffle=False,
             drop_last=False
         )
-        return loader_train, loader_valid, len(train)
+        return loader_train, loader_valid, len(self.df)
 
     def model_setting(self, len_train: int):
         model = getattr(task, self.cfg.task)(self.cfg, len_train)
