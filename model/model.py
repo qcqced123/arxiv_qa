@@ -220,28 +220,18 @@ class MetricLearningModel(nn.Module, AbstractTask):
         if self.cfg.gradient_checkpoint:
             self.model.gradient_checkpointing_enable()
 
-    def get_mask(self, features: Tensor, mask_type: str, query_index: Tensor, context_index: Tensor = None) -> Tensor:
-        """ return the mask for separating the query and context sentence embedding """
-        mask = None
-        batch_size, seq_length, hidden_size = features.size()
-        if mask_type == 'query':
-            mask = (torch.arange(seq_length).expand(batch_size, seq_length).to(self.cfg.device) >= 1) & (torch.arange(seq_length).expand(batch_size, seq_length).to(self.cfg.device) < query_index.unsqueeze(1))
-        elif mask_type == 'context':
-            mask = (torch.arange(seq_length).expand(batch_size, seq_length).to(self.cfg.device) >= query_index.unsqueeze(1) + 1) & (torch.arange(seq_length).expand(batch_size, seq_length) < context_index.unsqueeze(1))
-        return mask
-
     def feature(self, inputs: Dict):
         outputs = self.model(**inputs)
         return outputs
 
-    def forward(self, inputs: Dict, query_index: Tensor, context_index: Tensor) -> Tuple[Tensor, Tensor]:
+    def forward(self, inputs: Dict, query_mask: Tensor, context_mask: Tensor) -> Tuple[Tensor, Tensor]:
         """ forward function for Metric Learning Task, which is used for learning similarity between two input sentences
         using argument "query_index" and "context_index" for separating two input sentences
 
         Args:
             inputs: Dict, input dictionary for forward function
-            query_index: int, index of query token in input_ids
-            context_index: int, index of context token in input_ids
+            query_mask: torch.Tensor, boolean mask for query sentence
+            context_mask: torch.Tensor, boolean mask for context(document) sentence
 
         Returns:
             query_h: Tensor, embedding of query token
@@ -250,25 +240,19 @@ class MetricLearningModel(nn.Module, AbstractTask):
         h = self.feature(inputs)
         features = h.last_hidden_state
 
-        print(f"query_index is: {query_index}")
-        print(f"context_index is: {context_index}")
-
-        print(f"query_index shape is: {query_index.shape}")
-        print(f"context_index shape is: {context_index.shape}")
-
         if self.cfg.pooling == 'WeightedLayerPooling':  # using all encoder layer's output
             features = h.hidden_states
 
         # for calculating the arcface loss, multiple negative ranking loss
         query_h = self.pooling(
             last_hidden_state=features,
-            mask=self.get_mask(features=features, mask_type='query', query_index=query_index),
+            mask=query_mask,
             p=self.cfg.pow_value
         )
         # for calculating the arcface loss, multiple negative ranking loss
         context_h = self.pooling(
             last_hidden_state=features,
-            mask=self.get_mask(features, mask_type='context', query_index=query_index, context_index=context_index),
+            mask=context_mask,
             p=self.cfg.pow_value
         )
         return query_h, context_h

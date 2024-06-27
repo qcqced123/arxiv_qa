@@ -30,7 +30,7 @@ class SubSequenceGEMPooling(nn.Module):
         """
         Args:
             last_hidden_state: shape of [batch, sequence, hidden_size] tensor, hidden state of query or context from model
-            mask: shape of [batch, sequence] tensor, attention mask for ignoring not target token (not query, not context)
+            mask: shape of [batch, sequence, hidden_size] tensor, attention mask for ignoring not target token (not query, not context)
             p: float, exponent value for generalized mean pooling, default is 1
 
         workflow:
@@ -38,15 +38,8 @@ class SubSequenceGEMPooling(nn.Module):
             2) count validate tokens in last hidden state
             3) pow sum_embeddings with 1/p
         """
-
-        print(f"before last_hidden_state: {last_hidden_state.shape}")
-        print(f"before mask: {mask.shape}")
-
-        p_embeddings = torch.sum(torch.pow(last_hidden_state, p), 1)
+        p_embeddings = torch.sum(torch.pow(last_hidden_state*mask, p), 1)
         valid_token_counts = torch.sum(mask, 1)
-
-        print(f"p_embeddings: {p_embeddings.shape}")
-        print(f"valid_token_counts: {valid_token_counts.shape}")
 
         sum_embeddings = p_embeddings / valid_token_counts
         gem_embeddings = torch.pow(sum_embeddings, 1. / p)

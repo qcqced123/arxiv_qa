@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 from torch.optim.swa_utils import AveragedModel
 from typing import Tuple, Any, Union, List, Callable, Dict
 
+from transformers import AutoConfig
 from elasticsearch import Elasticsearch
 
 from configuration import CFG
@@ -704,6 +705,7 @@ class MetricLearningTuner:
         self.generator = generator
         self.model_name = self.cfg.model_name
         self.tokenizer = self.cfg.tokenizer
+        self.plm_cfg = AutoConfig.from_pretrained(self.cfg.model_name)
         self.metric_list = self.cfg.metrics
         self.df = load_all_types_dataset(
             f'./dataset_class/datafolder/arxiv_qa/total/cleansing_test_generate_question_document_db.csv'
@@ -717,7 +719,7 @@ class MetricLearningTuner:
         train_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, train)
         valid_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, valid)
 
-        collate_fn = CollatorFunc()
+        collate_fn = CollatorFunc(plm_cfg=self.plm_cfg)
         loader_train = get_dataloader(
             cfg=self.cfg,
             dataset=train_dataset,
@@ -811,16 +813,16 @@ class MetricLearningTuner:
         for step, batch in enumerate(tqdm(loader_train)):
             optimizer.zero_grad(set_to_none=True)
             inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k in ["input_ids", "attention_mask"]}
-            query_index = batch['query_index'].to(self.cfg.device, non_blocking=True)
-            document_index = batch['document_index'].to(self.cfg.device, non_blocking=True)
+            query_mask = batch['query_mask'].to(self.cfg.device, non_blocking=True)
+            document_mask = batch['document_mask'].to(self.cfg.device, non_blocking=True)
             labels = batch['labels'].to(self.cfg.device, non_blocking=True)
 
             batch_size = labels.size(0)
             with torch.cuda.amp.autocast(enabled=self.cfg.amp_scaler):
                 query_h, context_h = model(
                     inputs=inputs,
-                    query_index=query_index,
-                    context_index=document_index
+                    query_index=query_mask,
+                    context_index=document_mask
                 )
 
                 # do not call view, logit of arcface
@@ -888,16 +890,16 @@ class MetricLearningTuner:
         with torch.no_grad():
             for step, batch in enumerate(tqdm(loader_valid)):
                 inputs = {k: v.to(self.cfg.device, non_blocking=True) for k, v in batch.items() if k in ["input_ids", "attention_mask"]}
-                query_index = batch['query_index'].to(self.cfg.device, non_blocking=True)
-                document_index = batch['document_index'].to(self.cfg.device, non_blocking=True)
+                query_mask = batch['query_mask'].to(self.cfg.device, non_blocking=True)
+                document_mask = batch['document_mask'].to(self.cfg.device, non_blocking=True)
                 labels = batch['labels'].to(self.cfg.device, non_blocking=True)
 
                 batch_size = labels.size(0)
 
                 query_h, context_h = model(
                     inputs=inputs,
-                    query_index=query_index,
-                    context_index=document_index
+                    query_index=query_mask,
+                    context_index=document_mask
                 )
                 # do not call view, logit of arcface
                 mnrl_loss = mnrl(query_h, context_h)
