@@ -821,8 +821,8 @@ class MetricLearningTuner:
             with torch.cuda.amp.autocast(enabled=self.cfg.amp_scaler):
                 query_h, context_h = model(
                     inputs=inputs,
-                    query_index=query_mask,
-                    context_index=document_mask
+                    query_mask=query_mask,
+                    context_mask=document_mask
                 )
 
                 # do not call view, logit of arcface
@@ -898,8 +898,8 @@ class MetricLearningTuner:
 
                 query_h, context_h = model(
                     inputs=inputs,
-                    query_index=query_mask,
-                    context_index=document_mask
+                    query_mask=query_mask,
+                    context_mask=document_mask
                 )
                 # do not call view, logit of arcface
                 mnrl_loss = mnrl(query_h, context_h)
