@@ -176,7 +176,7 @@ class AbstractTask:
             https://arxiv.org/abs/2305.14314
         """
         lora_config = LoraConfig(
-            target_modules="all-linear" if self.cfg.module_name == 'allenai/longformer-base-4096' else None,
+            target_modules="all-linear" if self.cfg.model_name == 'allenai/longformer-base-4096' else None,
             task_type=getattr(TaskType, self.cfg.task_type) if self.cfg.task_type != 'None' else "None",
             inference_mode=False,
             r=self.cfg.lora_rank,  # rank value
