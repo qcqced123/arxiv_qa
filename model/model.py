@@ -220,15 +220,14 @@ class MetricLearningModel(nn.Module, AbstractTask):
         if self.cfg.gradient_checkpoint:
             self.model.gradient_checkpointing_enable()
 
-    @staticmethod
-    def get_mask(features: Tensor, mask_type: str, query_index: Tensor, context_index: Tensor = None) -> Tensor:
+    def get_mask(self, features: Tensor, mask_type: str, query_index: Tensor, context_index: Tensor = None) -> Tensor:
         """ return the mask for separating the query and context sentence embedding """
         mask = None
         batch_size, seq_length, hidden_size = features.size()
         if mask_type == 'query':
-            mask = (torch.arange(seq_length).expand(batch_size, seq_length) >= 1) & (torch.arange(seq_length).expand(batch_size, seq_length) < query_index.unsqueeze(1))
+            mask = (torch.arange(seq_length).expand(batch_size, seq_length).to(self.cfg.device) >= 1) & (torch.arange(seq_length).expand(batch_size, seq_length).to(self.cfg.device) < query_index.unsqueeze(1))
         elif mask_type == 'context':
-            mask = (torch.arange(seq_length).expand(batch_size, seq_length) >= query_index.unsqueeze(1) + 1) & (torch.arange(seq_length).expand(batch_size, seq_length) < context_index.unsqueeze(1))
+            mask = (torch.arange(seq_length).expand(batch_size, seq_length).to(self.cfg.device) >= query_index.unsqueeze(1) + 1) & (torch.arange(seq_length).expand(batch_size, seq_length) < context_index.unsqueeze(1))
         return mask
 
     def feature(self, inputs: Dict):
