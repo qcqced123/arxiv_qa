@@ -24,7 +24,7 @@
         "init_weight": "kaiming_normal",
         "initializer_range": 0.02,
         "lora": false,
-        "qlora": true,
+        "qlora": false,
         "prompt_tuning": false
     },
 
