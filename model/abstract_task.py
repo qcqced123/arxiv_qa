@@ -170,6 +170,7 @@ class AbstractTask:
             https://arxiv.org/abs/2305.14314
         """
         lora_config = LoraConfig(
+            target_modules="all-linear",
             task_type=getattr(TaskType, self.cfg.task_type) if self.cfg.task_type != 'None' else "None",
             inference_mode=False,
             r=self.cfg.lora_rank,  # rank value
