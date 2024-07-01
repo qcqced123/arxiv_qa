@@ -43,7 +43,7 @@ def check_library(checker: bool) -> tuple:
     """
     if not checker:
         _is_built = torch.backends.cudnn.is_available()
-        _is_enable = torch.backends.cudnn.enabledtorch.backends.cudnn.enabled
+        _is_enable = torch.backends.cudnn.enabled
         version = torch.backends.cudnn.version()
         device = (_is_built, _is_enable, version)
         return device
