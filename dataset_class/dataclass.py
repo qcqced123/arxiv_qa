@@ -85,7 +85,7 @@ class QuestionDocumentMatchingDataset(Dataset):
         )
 
         query, document = [self.cfg.tokenizer.decode(seq) for seq in sequences]
-
+        print(query, document)
         prompt = f"{cls} " + query + f" {sep} " + document + f" {sep}"
         batches = self.tokenizer(
                 text=prompt,
