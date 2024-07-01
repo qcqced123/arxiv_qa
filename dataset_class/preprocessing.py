@@ -253,7 +253,7 @@ def tokenizing(
     return inputs
 
 
-def adjust_sequences(sequences: List, max_len: int):
+def adjust_sequences(sequences: List[List], max_len: int):
     """ Similar to dynamic padding concept
     Append slicing index from original, because original source code is implemented weired
     So it generates some problem for applying very longer sequence

@@ -6,6 +6,7 @@ from torch import Tensor
 from typing import Dict, List, Tuple
 from torch.utils.data import Dataset
 from dataset_class.preprocessing import tokenizing, no_multi_spaces
+from dataset_class.preprocessing import adjust_sequences, subsequent_tokenizing
 
 
 class PretrainDataset(Dataset):
@@ -69,9 +70,23 @@ class QuestionDocumentMatchingDataset(Dataset):
     def __getitem__(self, item: int) -> Dict[str, Tensor]:
         cls, sep = self.cfg.tokenizer.cls_token, self.cfg.tokenizer.sep_token
 
-        query, document = no_multi_spaces(self.questions[item]), no_multi_spaces(self.documents[item])
-        prompt = f"{cls} " + query + f" {sep} " + document + f" {sep}"
+        query = subsequent_tokenizing(
+            self.cfg,
+            no_multi_spaces(self.questions[item])
+        )
+        document = subsequent_tokenizing(
+            self.cfg,
+            no_multi_spaces(self.documents[item])
+        )
 
+        sequences, _ = adjust_sequences(
+            [query, document],
+            self.cfg.max_len-3
+        )
+
+        query, document = [self.cfg.tokenizer.decode(seq) for seq in sequences]
+
+        prompt = f"{cls} " + query + f" {sep} " + document + f" {sep}"
         batches = self.tokenizer(
                 text=prompt,
                 cfg=self.cfg,
