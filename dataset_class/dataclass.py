@@ -81,11 +81,10 @@ class QuestionDocumentMatchingDataset(Dataset):
 
         sequences, _ = adjust_sequences(
             [query, document],
-            self.cfg.max_len-3
+            self.cfg.max_len-5
         )
 
         query, document = [self.cfg.tokenizer.decode(seq) for seq in sequences]
-        print(query, document)
         prompt = f"{cls} " + query + f" {sep} " + document + f" {sep}"
         batches = self.tokenizer(
                 text=prompt,
@@ -95,6 +94,8 @@ class QuestionDocumentMatchingDataset(Dataset):
                 padding=False,
                 add_special_tokens=False,
             )
+
+        print(len(batches["input_ids"]))
 
         # for input_ids, attention_mask
         for k, v in batches.items():
