@@ -25,12 +25,13 @@ from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_f
 from generate_question.generate_question import get_necessary_module_for_generation_in_local, postprocess
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
-
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
 os.environ["LRU_CACHE_CAPACITY"] = "4096"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:16"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "garbage_collection_threshold:0.8, expandable_segments:True"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+
 
 load_dotenv()
 check_library(False)
