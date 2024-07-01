@@ -82,3 +82,5 @@ def seed_worker(worker_id) -> None:
     random.seed(worker_seed)
 
 
+if __name__ == '__main__':
+    check_library(False)
