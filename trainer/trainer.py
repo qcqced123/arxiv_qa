@@ -868,7 +868,7 @@ class MetricLearningTuner:
                     print(f'[Update] Total Valid Score : ({val_score_max:.4f} => {valid_loss:.4f}) Save Parameter')
                     print(f'Total Best Score: {valid_loss}')
                     torch.save(
-                        model.model.student.state_dict(),
+                        model.state_dict(),
                         f'{self.cfg.checkpoint_dir}_{self.cfg.pooling}_{get_name(self.cfg.model_name)}_state_dict.pth'
                     )
                     val_score_max = valid_loss
