@@ -912,7 +912,7 @@ class MetricLearningTuner:
 
                 # we calculate the top-1 accuracy for each batch instance
                 # for calculating the top-1 accuracy
-                queries, contexts = query_h.detach().numpy(), context_h.detach().numpy()
+                queries, contexts = query_h.detach().cpu().numpy(), context_h.detach().cpu().numpy()
                 for i, metric_fn in enumerate(val_metric_list):
                     scores = metric_fn(
                         query=queries,
