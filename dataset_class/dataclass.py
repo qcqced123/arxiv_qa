@@ -94,9 +94,6 @@ class QuestionDocumentMatchingDataset(Dataset):
                 padding=False,
                 add_special_tokens=False,
             )
-
-        print(len(batches["input_ids"]))
-
         # for input_ids, attention_mask
         for k, v in batches.items():
             batches[k] = torch.as_tensor(v)
