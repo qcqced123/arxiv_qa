@@ -29,7 +29,7 @@ from dataset_class.preprocessing import dataset_split, load_all_types_dataset
 
 from trainer.loss import MultipleNegativeRankingLoss
 from trainer.collator_fn import CollatorFunc
-from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler
+from trainer.trainer_utils import AverageMeter, AWP, get_dataloader, get_swa_scheduler, get_name
 from trainer.trainer_utils import load_pretrained_weights, get_optimizer_grouped_parameters, get_scheduler
 
 
@@ -869,7 +869,7 @@ class MetricLearningTuner:
                     print(f'Total Best Score: {valid_loss}')
                     torch.save(
                         model.model.student.state_dict(),
-                        f'{self.cfg.checkpoint_dir}DistilBERT_Student_{self.cfg.mlm_masking}_{self.cfg.max_len}_{self.cfg.module_name}_state_dict.pth'
+                        f'{self.cfg.checkpoint_dir}_{self.cfg.pooling}_{get_name(self.cfg.model_name)}_state_dict.pth'
                     )
                     val_score_max = valid_loss
         return losses.avg * self.cfg.n_gradient_accumulation_steps, val_score_max
