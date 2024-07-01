@@ -42,10 +42,12 @@ def check_library(checker: bool) -> tuple:
         - current device is cuda with cudnn
     """
     if not checker:
+        _is_cuda_built = torch.cuda.is_available()
         _is_built = torch.backends.cudnn.is_available()
         _is_enable = torch.backends.cudnn.enabled
         version = torch.backends.cudnn.version()
         device = (_is_built, _is_enable, version)
+        print(f"cuda: {_is_cuda_built}, cudnn: {_is_built}, enable: {_is_enable}, version: {version}")
         return device
 
 

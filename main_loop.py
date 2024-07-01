@@ -33,7 +33,7 @@ os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:16"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "garbage_collection_threshold:0.8, expandable_segments:True"
 
 load_dotenv()
-check_library(True)
+check_library(False)
 torch.cuda.empty_cache()
 warnings.filterwarnings('ignore')
 all_type_seed(CFG, True)
