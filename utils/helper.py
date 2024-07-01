@@ -47,6 +47,8 @@ def check_library(checker: bool) -> tuple:
         _is_enable = torch.backends.cudnn.enabled
         version = torch.backends.cudnn.version()
         device = (_is_built, _is_enable, version)
+        print(torch.cuda.device_count())
+        print(torch.cuda.get_device_name(device=0))  # 'NVIDIA TITAN X (Pascal)'
         print(f"cuda: {_is_cuda_built}, cudnn: {_is_built}, enable: {_is_enable}, version: {version}")
         return device
 
