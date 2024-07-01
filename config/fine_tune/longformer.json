@@ -32,7 +32,7 @@
         "datafolder": "arxiv_qa",
         "batching": "random",
         "split_ratio": 0.1,
-        "epochs": 1,
+        "epochs": 10,
         "batch_size": 48,
         "val_batch_size": 32,
         "val_check": 100
@@ -53,7 +53,7 @@
         "scheduler": "cosine_annealing",
         "batch_scheduler": true,
         "num_cycles": 1,
-        "warmup_ratio": 0.1
+        "warmup_ratio": 0.01
     },
 
     "gradient_settings": {
