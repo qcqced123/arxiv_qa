@@ -869,7 +869,7 @@ class MetricLearningTuner:
                     print(f'Total Best Score: {valid_loss}')
                     torch.save(
                         model.state_dict(),
-                        f'{self.cfg.checkpoint_dir}_{self.cfg.pooling}_{get_name(self.cfg.model_name)}_state_dict.pth'
+                        f'{self.cfg.checkpoint_dir}_{self.cfg.pooling}_{get_name(self.cfg)}_state_dict.pth'
                     )
                     val_score_max = valid_loss
         return losses.avg * self.cfg.n_gradient_accumulation_steps, val_score_max
