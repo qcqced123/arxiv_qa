@@ -41,7 +41,7 @@
     "optimizer_options": {
         "optimizer": "AdamW",
         "llrd": false,
-        "layerwise_lr": 2e-4,
+        "layerwise_lr": 4e-4,
         "layerwise_lr_decay": 0.95,
         "weight_decay": 1e-2,
         "adam_epsilon": 1e-6,
