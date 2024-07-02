@@ -35,7 +35,7 @@
         "epochs": 10,
         "batch_size": 40,
         "val_batch_size": 16,
-        "val_check": 100
+        "val_check": 100000
     },
 
     "optimizer_options": {
