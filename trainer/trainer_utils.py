@@ -222,9 +222,11 @@ def get_swa_scheduler(
 def get_name(cfg: configuration.CFG) -> str:
     """ get name of model for recording experiment result """
     try:
-        name = cfg.model.replace('/', '-')
+        name = cfg.model_name.replace('/', '-')
+
     except ValueError:
-        name = cfg.model
+        name = cfg.model_name
+
     return name
 
 
