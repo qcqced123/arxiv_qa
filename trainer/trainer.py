@@ -1,3 +1,4 @@
+import gc
 import wandb
 import numpy as np
 import transformers
@@ -872,6 +873,7 @@ class MetricLearningTuner:
                         f'{self.cfg.checkpoint_dir}_{self.cfg.pooling}_{get_name(self.cfg)}_state_dict.pth'
                     )
                     val_score_max = valid_loss
+
         return losses.avg * self.cfg.n_gradient_accumulation_steps, val_score_max
 
     def valid_fn(
@@ -923,4 +925,10 @@ class MetricLearningTuner:
                     wandb.log({
                         f'<Val Step> Valid {self.metric_list[i]}': valid_metrics[self.metric_list[i]].avg,
                     })
+
+        # clean up gpu cache
+        del inputs, query_mask, document_mask, labels, query_h, context_h
+        gc.collect()
+        torch.cuda.empty_cache()
+
         return valid_losses.avg
