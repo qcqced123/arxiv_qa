@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 from omegaconf import OmegaConf
 from multiprocessing import pool
 from huggingface_hub import login
+from transformers import logging as transformers_logging
 
 from utils.util import sync_config
 from utils.helper import check_library, all_type_seed
@@ -36,8 +37,9 @@ load_dotenv()
 check_library(False)
 torch.cuda.empty_cache()
 warnings.filterwarnings('ignore')
-all_type_seed(CFG, True)
+transformers_logging.set_verbosity_error()
 
+all_type_seed(CFG, True)
 g = torch.Generator()
 g.manual_seed(CFG.seed)
 
