@@ -8,6 +8,7 @@
     },
 
     "generate_options": {
+        "inference_pipeline": "tensorrt_llm",
         "model_name": "microsoft/Phi-3-mini-128k-instruct",
         "tokenizer_name": "microsoft/Phi-3-mini-128k-instruct",
         "max_len": 6144,

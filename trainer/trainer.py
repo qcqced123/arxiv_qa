@@ -7,6 +7,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+import vllm
+import tensorrt
+import tensorrt_llm
+
 import trainer.loss as loss
 import trainer.metric as metric
 import dataset_class.dataclass as dataset_class
