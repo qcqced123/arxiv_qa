@@ -17,9 +17,6 @@ import tensorrt_llm
 
 from tensorrt_llm import LLM
 from tensorrt_llm.hlapi import KvCacheConfig
-from tensorrt_llm.hlapi.llm import SamplingParams
-from tensorrt_llm.hlapi.llm_utils import KvCacheConfig, QuantAlgo, QuantConfig
-from tensorrt_llm.hlapi.utils import get_device_count
 
 
 from torch import Tensor
