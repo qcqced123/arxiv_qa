@@ -15,9 +15,8 @@ import vllm
 import tensorrt
 import tensorrt_llm
 
-from tensorrt_llm import LLM
+from tensorrt_llm import LLM, SamplingParams
 from tensorrt_llm.hlapi import KvCacheConfig
-
 
 from torch import Tensor
 from numpy import ndarray
