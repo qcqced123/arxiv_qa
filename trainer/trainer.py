@@ -655,8 +655,10 @@ class TextGenerationTuner:
         than native pytorch & huggingface inference pipeline
         """
         llm = LLM(
-            model=model,
+            model=self.cfg.model_name,
+            max_model_len=6144,
             tensor_parallel_size=1,
+            trust_remote_code=True
         )
         sampling_config = SamplingParams(
             best_of=1,
