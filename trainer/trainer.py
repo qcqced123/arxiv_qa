@@ -611,6 +611,28 @@ class TextGenerationTuner:
         seq_log_prob = torch.sum(log_probs[:, input_len:])  # except last index token for calculating prob
         return seq_log_prob.cpu().numpy()
 
+    def trt_llm_inference(
+        self,
+        model: nn.Module,
+        max_new_tokens: int,
+        max_length: int,
+        query: str = None,
+        context: str = None,
+        prompt: str = None,
+        strategy: str = None,
+        penalty_alpha: float = None,
+        num_beams: int = None,
+        temperature: float = 1,
+        top_k: int = 50,
+        top_p: float = 0.9,
+        repetition_penalty: float = None,
+        length_penalty: float = None,
+        no_repeat_ngram_size: int = None,
+        do_sample: bool = False,
+        use_cache: bool = True,
+    ) -> List[Dict]:
+        pass
+
     def vllm_inference(
         self,
         model: nn.Module,
@@ -630,7 +652,7 @@ class TextGenerationTuner:
         no_repeat_ngram_size: int = None,
         do_sample: bool = False,
         use_cache: bool = True,
-    ):
+    ) -> List[Dict]:
         """ class method for inference pipeline for vllm, which can apply the paged attention, kv-cache,
         in-flight batching ...
 
@@ -656,6 +678,7 @@ class TextGenerationTuner:
             spaces_between_special_tokens=True,
         )
         output = llm.generate(prompt, sampling_config)
+        print(output)
         return output
 
     @torch.no_grad()
@@ -680,6 +703,10 @@ class TextGenerationTuner:
         use_cache: bool = True,
     ) -> List[Dict]:
         """ method for making the answer from the given prompt (context + query) or pre-defined prompt by caller
+
+        this method is designed with native pytorch & huggingface library,
+        if you want to use other faster platform such as tensorrt_llm, vllm, you must change the config value,
+        named "inference_pipeline"
 
         generate method's arguments setting guide:
             1) num_beams: 1 for greedy search, > 1 for beam search

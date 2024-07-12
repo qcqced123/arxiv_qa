@@ -186,9 +186,22 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         # you can choose any other generator llm in huggingface model hub (currently google gemini api does not support)
         # you can select the question generator by setting the cfg.question_generator
         # default setting is microsoft/Phi-3-mini-128k-instruct
+        # initialize & get the inference function, option for tensorrt_llm, vllm, huggingface
+        # you can select those of three platform in configuration json file (param name is "inference_pipeline")
         questions = []
         modules = get_necessary_module_for_generation_in_local(cfg, es, g)
         tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
+
+        inference_fn = None
+        if cfg.inference_pipeline == "tensorrt_llm":
+            inference_fn = tuner.trt_llm_inference
+
+        elif cfg.inference_pipeline == "vllm":
+            inference_fn = tuner.vllm_inference
+
+        else:
+            inference_fn = tuner.inference
+
         for i, row in tqdm(df.iterrows(), total=len(df)):
             context = cut_context(
                 cfg=cfg,
@@ -196,7 +209,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             )
             prompt = get_prompt_for_question_generation(context=context)
             questions.append(
-                tuner.inference(
+                inference_fn(
                     model=generator,
                     max_new_tokens=cfg.max_new_tokens,
                     max_length=cfg.max_len,
