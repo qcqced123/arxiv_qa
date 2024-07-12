@@ -637,8 +637,11 @@ class TextGenerationTuner:
         this method is designed for the faster generative task, such as summarization, text generation, ...
         than native pytorch & huggingface inference pipeline
         """
-        llm = LLM(model=model)
-        SamplingParams(
+        llm = LLM(
+            model=model,
+            tensor_parallel_size=1,
+        )
+        sampling_config = SamplingParams(
             best_of=1,
             max_tokens=max_new_tokens,
             repetition_penalty=repetition_penalty,
@@ -652,8 +655,8 @@ class TextGenerationTuner:
             skip_special_tokens=True,
             spaces_between_special_tokens=True,
         )
-
-
+        output = llm.generate(prompt, sampling_config)
+        return output
 
     @torch.no_grad()
     def inference(
