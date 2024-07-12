@@ -13,12 +13,8 @@ import dataset_class.dataclass as dataset_class
 
 import vllm
 import tensorrt
-import tensorrt_llm
 
 from vllm import LLM, SamplingParams
-
-from tensorrt_llm import LLM
-from tensorrt_llm.hlapi import KvCacheConfig
 
 from torch import Tensor
 from numpy import ndarray
