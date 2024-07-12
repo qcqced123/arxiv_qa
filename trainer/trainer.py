@@ -15,6 +15,8 @@ import vllm
 import tensorrt
 import tensorrt_llm
 
+from vllm import LLM, SamplingParams
+
 from tensorrt_llm import LLM
 from tensorrt_llm.hlapi import KvCacheConfig
 from tensorrt_llm.hlapi.utils import SamplingParams
@@ -608,6 +610,50 @@ class TextGenerationTuner:
         log_probs = self.log_probs_from_logit(output.logits[:, :-1, :], labels[:, 1:])  # rotate
         seq_log_prob = torch.sum(log_probs[:, input_len:])  # except last index token for calculating prob
         return seq_log_prob.cpu().numpy()
+
+    def vllm_inference(
+        self,
+        model: nn.Module,
+        max_new_tokens: int,
+        max_length: int,
+        query: str = None,
+        context: str = None,
+        prompt: str = None,
+        strategy: str = None,
+        penalty_alpha: float = None,
+        num_beams: int = None,
+        temperature: float = 1,
+        top_k: int = 50,
+        top_p: float = 0.9,
+        repetition_penalty: float = None,
+        length_penalty: float = None,
+        no_repeat_ngram_size: int = None,
+        do_sample: bool = False,
+        use_cache: bool = True,
+    ):
+        """ class method for inference pipeline for vllm, which can apply the paged attention, kv-cache,
+        in-flight batching ...
+
+        this method is designed for the faster generative task, such as summarization, text generation, ...
+        than native pytorch & huggingface inference pipeline
+        """
+        llm = LLM(model=model)
+        SamplingParams(
+            best_of=1,
+            max_tokens=max_new_tokens,
+            repetition_penalty=repetition_penalty,
+            length_penalty=length_penalty,
+            temperature=temperature,
+            top_k=top_k,
+            top_p=top_p,
+            seed=self.cfg.seed,
+            early_stopping=True,
+            detokenize=True,
+            skip_special_tokens=True,
+            spaces_between_special_tokens=True,
+        )
+
+
 
     @torch.no_grad()
     def inference(
