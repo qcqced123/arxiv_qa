@@ -675,7 +675,6 @@ class TextGenerationTuner:
             spaces_between_special_tokens=True,
         )
         output = llm.generate(prompt, sampling_config)
-        print(output)
         return output
 
     @torch.no_grad()
