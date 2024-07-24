@@ -109,8 +109,8 @@ def recall(y_true: np.ndarray, y_pred: np.ndarray, cfg: configuration.CFG) -> fl
 
     # for binary classification
     if cfg.num_labels == 2:
-        tp = np.sum((y_true == y_pred) & (y_true != 1))  # same as np.bitwise
-        fn = np.sum((y_true == y_pred) & (y_true == 0))
+        tp = np.sum((y_true == 1) & (y_pred == 1))  # same as np.bitwise
+        fn = np.sum((y_true == 1) & (y_pred == 0))
         if tp + fn == 0:
             score = 0
         else:
