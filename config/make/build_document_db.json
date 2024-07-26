@@ -1,14 +1,14 @@
 {
     "pipeline_setting": {
         "pipeline_type": "make",
-        "work_flow_state": "resume",
+        "work_flow_state": "init",
         "n_jobs": 4,
         "resume": false,
         "task": "CasualLanguageModel"
     },
 
     "generate_options": {
-        "inference_pipeline": "huggingface",
+        "inference_pipeline": "vllm",
         "model_name": "microsoft/Phi-3-mini-128k-instruct",
         "tokenizer_name": "microsoft/Phi-3-mini-128k-instruct",
         "max_len": 6144,

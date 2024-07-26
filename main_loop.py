@@ -77,8 +77,8 @@ def make_loop(path_list: List[str]) -> List:
             )
             document = chunk_by_recursive_search(
                 text=result['text'],
-                chunk_size=1024,
-                over_lapping_size=128
+                chunk_size=2048,
+                over_lapping_size=256
             )
             documents = [e.page_content for e in document]
             for e in result["table"]:
