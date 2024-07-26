@@ -1,8 +1,7 @@
 from typing import List, Dict
 from elasticsearch import Elasticsearch
-from sentence_transformers import SentenceTransformer
-
 from db.run_db import search_candidates
+from sentence_transformers import SentenceTransformer
 
 
 def build_context(query: str, result: List[Dict]) -> str:

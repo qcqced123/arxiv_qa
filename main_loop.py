@@ -139,6 +139,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 
         # CLI argument signature: "fine_tune", "inference"
         # this branch will be called when the pipeline type var is set to "fine_tune" or "inference"
+
         6) run query encoder
             - get query from the user or query db
             - encode or project the query into embedding space
