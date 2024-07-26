@@ -8,7 +8,7 @@
     },
 
     "generate_options": {
-        "inference_pipeline": "vllm",
+        "inference_pipeline": "huggingface",
         "model_name": "microsoft/Phi-3-mini-128k-instruct",
         "tokenizer_name": "microsoft/Phi-3-mini-128k-instruct",
         "max_len": 6144,

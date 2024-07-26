@@ -102,5 +102,6 @@ if __name__ == '__main__':
     query = remove_exist_paper_list()
     chunked = [query[i:i + len(query)//n_jobs] for i in range(0, len(query), len(query)//n_jobs)]
     resume_chunked = [chunk for chunk in chunked]
+
     with Pool(processes=n_jobs) as pool:
         pool.map(main_loop, resume_chunked)

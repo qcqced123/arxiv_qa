@@ -8,15 +8,10 @@ import configuration as configuration
 from datasets import load_dataset, Dataset, DatasetDict
 from sklearn.model_selection import StratifiedKFold, GroupKFold, train_test_split
 from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
+
 from tqdm.auto import tqdm
-from typing import List, Tuple, Dict, Callable, Any
-
-from autocorrect import Speller
-from spellchecker import SpellChecker
 from nltk.tokenize import word_tokenize
-
-speller = Speller(lang='en')
-spellchecker = SpellChecker()
+from typing import List, Tuple, Dict, Callable, Any
 
 
 def hf_load_dataset(cfg: configuration.CFG) -> DatasetDict:
@@ -353,26 +348,6 @@ def load_data(data_path: str) -> pd.DataFrame:
     """
     df = pd.read_csv(data_path)
     return df
-
-
-def spelling(text: str, spellchecker: SpellChecker) -> int:
-    """ return number of mis-spelling words in original text """
-    wordlist = text.split()
-    amount_miss = len(list(spellchecker.unknown(wordlist)))
-    return amount_miss
-
-
-def add_spelling_dictionary(tokens: List[str], spellchecker: SpellChecker, speller: Speller) -> None:
-    """dictionary update for py-spell checker and autocorrect"""
-    spellchecker.word_frequency.load_words(tokens)
-    speller.nlp_data.update({token: 1000 for token in tokens})
-
-
-def spell_corrector(df: pd.DataFrame, spellchecker: SpellChecker = spellchecker, speller: Speller = speller) -> None:
-    """ correct mis-spell words in summaries text """
-    df['full_text_tokens'] = df['full_text'].progress_apply(lambda x: word_tokenize(x))
-    df['full_text_tokens'].progress_apply(lambda x: add_spelling_dictionary(x, spellchecker, speller))
-    df['fixed_full_text'] = df['full_text'].progress_apply(lambda x: speller(x))
 
 
 def no_multi_spaces(text):
