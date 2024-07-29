@@ -18,9 +18,9 @@ from utils.helper import check_library, all_type_seed
 
 from configuration import CFG
 from prompt.prompt_maker import cut_context
-from dataset_class.preprocessing import save_pkl
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
+from dataset_class.preprocessing import save_pkl, jump_exist_paper
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
 from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
 from generate_question.generate_question import get_necessary_module_for_generation_in_local, postprocess
@@ -69,6 +69,11 @@ def make_loop(path_list: List[str]) -> List:
     for path in tqdm(path_list):
         print(path.split('_'))
         pid, title = path.split('_')  # current pdf file's paper id and title for making dataframe
+
+        # jump logic if the current pdf file is already processed
+        if jump_exist_paper(pid):
+            continue
+
         try:
             result = cut_pdf_to_sub_module_with_text(
                 path=base_path + path,
@@ -157,7 +162,6 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     # need to abstract this branch
     # branch for calling pipeline that builds the document embedding db, q-doc dataset
     if pipeline_type == "make":
-
         # branch of getting elements from pdf files and making the document dataframe
         # if configuration var state(cfg.work_flow_state) is "init", then make the document dataframe
         # if configuration var state(cfg.work_flow_state) is "resume", then load the document dataframe

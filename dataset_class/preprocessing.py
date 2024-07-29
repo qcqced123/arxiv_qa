@@ -574,30 +574,13 @@ def jsonl_to_df(jsonl_file: str) -> pd.DataFrame:
     return pd.DataFrame(data)
 
 
-def unify_feature_name(df: pd.DataFrame, rule: Dict) -> pd.DataFrame:
-    """ Unify feature name (column name) in dataframe with each fine-tune task
-    Use dictionary to map the feature name to unified feature name for each task
+def jump_exist_paper(pid: str):
+    """jump function if the current pid pdf file is already in partition folder,
+    which is meaning that file is already processed by chunking algorithm
 
     Args:
-        df: pd.DataFrame, dataset from csv file
-        rule: dict, dictionary for mapping feature name to unified feature name, came from name_rule module
-
-    Notes:
-        1) sentiment analysis:
-            rule = {
-                'text': 'text',
-                'review': 'text',
-                'sentence_title': 'title',
-                'rating': 'rating',
-                'label': 'rating',
-                }
+        pid (str): current pdf file for processing by chunking algorithm
     """
-    new_col = []
-    for col in df.columns:
-        try: col = rule[col]
-        except: pass
-        new_col.append(col)
-
-    df.columns = new_col
-    return df
-
+    curr = f"{pid}.csv"
+    exist_pids = os.listdir("./datafolder/arxiv_qa/partition/")
+    return True if curr in exist_pids else False
