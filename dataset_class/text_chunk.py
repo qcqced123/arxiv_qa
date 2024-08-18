@@ -21,7 +21,6 @@ for making better split Arxiv paper document
     - convert pdf table to html code for making the model to understand the table
       (convert_pdf_table_to_html())
 5)
-
 """
 import os
 import re

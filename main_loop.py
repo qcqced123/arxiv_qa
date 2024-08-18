@@ -20,16 +20,15 @@ from configuration import CFG
 from prompt.prompt_maker import cut_context
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
-from dataset_class.preprocessing import save_pkl, jump_exist_paper
+from dataset_class.preprocessing import save_pkl, jump_exist_paper, merge_partition_files
 from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
 from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
 from generate_question.generate_question import get_necessary_module_for_generation_in_local, postprocess
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
+os.environ["LRU_CACHE_CAPACITY"] = "4096"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 os.environ['TRANSFORMERS_NO_ADVISORY_WARNINGS'] = 'true'
-os.environ["LRU_CACHE_CAPACITY"] = "4096"
-os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "max_split_size_mb:16"
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "garbage_collection_threshold:0.8, expandable_segments:True"
 
 
@@ -82,8 +81,8 @@ def make_loop(path_list: List[str]) -> List:
             )
             document = chunk_by_recursive_search(
                 text=result['text'],
-                chunk_size=2048,
-                over_lapping_size=256
+                chunk_size=4096,
+                over_lapping_size=512
             )
             documents = [e.page_content for e in document]
             for e in result["table"]:
@@ -173,15 +172,12 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             # multi-processing for-loop by pdf list
             size = len(path_list)//cfg.n_jobs
             chunked = [path_list[i:i+size] for i in range(0, len(path_list), size)]
-            df = pd.DataFrame(columns=['paper_id', 'doc_id', 'title', 'doc'])
 
             with pool.Pool(processes=cfg.n_jobs) as p:
-                elements = p.map(make_loop, chunked)
-
-            for element in elements:
-                df = pd.concat([df, pd.DataFrame(element, columns=['paper_id', 'doc_id', 'title', 'doc'])], axis=0)
+                p.map(make_loop, chunked)
 
             output_path = f"dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv"
+            df = merge_partition_files()
             df.to_csv(output_path, index=False)
 
         elif cfg.work_flow_state == "resume":

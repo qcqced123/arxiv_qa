@@ -2,159 +2,15 @@ import emoji
 import torch
 import numpy as np
 import pandas as pd
+import nemo_text_processing
 import re, gc, pickle, json, os
-
 import configuration as configuration
-from datasets import load_dataset, Dataset, DatasetDict
-from sklearn.model_selection import StratifiedKFold, GroupKFold, train_test_split
-from iterstrat.ml_stratifiers import MultilabelStratifiedKFold
 
 from tqdm.auto import tqdm
-from nltk.tokenize import word_tokenize
+from transformers import AutoTokenizer
 from typing import List, Tuple, Dict, Callable, Any
-
-
-def hf_load_dataset(cfg: configuration.CFG) -> DatasetDict:
-    """ Load dataset from Huggingface Datasets
-
-    Notes:
-        This function is temporary just fit-able for Wikipedia dataset
-
-    References:
-        https://github.com/huggingface/datasets/blob/main/src/datasets/load.py#2247
-    """
-    dataset = load_dataset(cfg.hf_dataset, cfg.language)
-    return dataset
-
-
-def hf_split_dataset(cfg: configuration.CFG, dataset: Dataset) -> Tuple[Dataset, Dataset]:
-    """ Split dataset from Huggingface Datasets with huggingface method "train_test_split"
-
-    Args:
-        cfg: configuration.CFG, needed to load split ratio, seed value
-        dataset: Huggingface Datasets object, dataset from Huggingface Datasets
-
-    Notes:
-        This function is temporary just fit-able for Wikipedia dataset & MLM Task
-    """
-    dataset = dataset.train_test_split(cfg.split_ratio, seed=cfg.seed)
-    train, valid = dataset['insert'], dataset['test']
-    return train, valid
-
-
-def dataset_split(cfg: configuration.CFG, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
-    """ Split dataset from pandas.DataFrame with sklearn.train_test_split
-
-    Args:
-        cfg: configuration.CFG, needed to load split ratio, seed value
-        df: pandas.DataFrame, dataset from csv file
-    """
-    train, valid = train_test_split(
-        df,
-        test_size=cfg.split_ratio,
-        random_state=cfg.seed,
-        shuffle=True,
-    )
-    return train, valid
-
-
-def dict2df(dataset: Dict) -> pd.DataFrame:
-    """ Convert dictionary to pandas.DataFrame
-    """
-    df = pd.DataFrame(dataset)
-    return df
-
-
-def group_kfold(df: pd.DataFrame, cfg: configuration.CFG) -> pd.DataFrame:
-    """ Group K Fold by sklearn
-
-    Args:
-        df: pandas.DataFrame, dataset from csv file
-        cfg: configuration.CFG, needed to load split ratio, seed value
-    """
-    fold = GroupKFold(
-        n_splits=cfg.n_folds,
-    )
-    df['fold'] = -1
-    for num, (tx, vx) in enumerate(fold.split(X=df, groups=df['prompt_id'])):
-        df.loc[vx, "fold"] = int(num)
-    return df
-
-
-def stratified_kfold(df: pd.DataFrame, label_name: str, cfg: configuration.CFG) -> pd.DataFrame:
-    """ Stratified K Fold by sklearn
-
-    Args:
-        df: pandas.DataFrame, dataset from csv file
-        label_name: target label name for stratified kfold
-        cfg: configuration.CFG, needed to load split ratio, seed value
-    """
-    fold = StratifiedKFold(
-        n_splits=cfg.n_folds,
-        shuffle=True,
-        random_state=cfg.seed
-    )
-    df['fold'] = -1
-    for num, (tx, vx) in enumerate(fold.split(X=df, y=df[f'{label_name}'])):
-        df.loc[vx, "fold"] = int(num)
-    return df
-
-
-def mls_kfold(df: pd.DataFrame, cfg) -> pd.DataFrame:
-    """ Multilabel Stratified KFold by iterstrat
-
-    Args:
-        df: pandas.DataFrame, dataset from csv file
-        cfg: configuration.CFG, needed to load split ratio, seed value
-    """
-    tmp_df = df.copy()
-    y = pd.get_dummies(data=tmp_df.iloc[:, 2:8], columns=tmp_df.columns[2:8])
-    fold = MultilabelStratifiedKFold(
-        n_splits=cfg.n_folds,
-        shuffle=True,
-        random_state=cfg.seed
-    )
-    for num, (tx, vx) in enumerate(fold.split(X=df, y=y)):
-        df.loc[vx, "fold"] = int(num)
-    del tmp_df
-    gc.collect()
-    return df
-
-
-def add_target_token(cfg: configuration.CFG, token: str) -> None:
-    """
-    Add special token to pretrained tokenizer
-
-    Args:
-        cfg: configuration.CFG, needed to load tokenizer from Huggingface AutoTokenizer
-        token: str, special token to add
-    """
-    special_token = token
-    special_tokens_dict = {'additional_special_tokens': [f'{special_token}']}
-    cfg.tokenizer.add_special_tokens(special_tokens_dict)
-    tar_token_id = cfg.tokenizer(f'{special_token}', add_special_tokens=False)['input_ids'][0]
-
-    setattr(cfg.tokenizer, 'tar_token', f'{special_token}')
-    setattr(cfg.tokenizer, 'tar_token_id', tar_token_id)
-    cfg.tokenizer.save_pretrained(f'{cfg.checkpoint_dir}/tokenizer/')
-
-
-def add_anchor_token(cfg: configuration.CFG, token: str) -> None:
-    """
-    Add special token to pretrained tokenizer
-
-    Args:
-        cfg: configuration.CFG, needed to load tokenizer from Huggingface AutoTokenizer
-        token: str, special token to add
-    """
-    special_token = token
-    special_tokens_dict = {'additional_special_tokens': [f'{special_token}']}
-    cfg.tokenizer.add_special_tokens(special_tokens_dict)
-    anchor_token_id = cfg.tokenizer(f'{special_token}', add_special_tokens=False)['input_ids'][0]
-
-    setattr(cfg.tokenizer, 'anchor_token', f'{special_token}')
-    setattr(cfg.tokenizer, 'anchor_token_id', anchor_token_id)
-    cfg.tokenizer.save_pretrained(f'{cfg.checkpoint_dir}/tokenizer/')
+from datasets import load_dataset, Dataset, DatasetDict
+from nemo_text_processing.text_normalization.normalize import Normalizer
 
 
 def chunking(cfg: configuration.CFG, sequences: Dict) -> List[str]:
@@ -348,22 +204,6 @@ def load_data(data_path: str) -> pd.DataFrame:
     """
     df = pd.read_csv(data_path)
     return df
-
-
-def no_multi_spaces(text):
-    return re.sub(r"\s+", " ", text, flags=re.I)
-
-
-def cleaning_words(text):
-    text = re.sub(r"[^\w\s.,!?\"'\-]", "", text)  # remove the not sentence symbol
-    text = re.sub(r"<[^>]+>", "", text)  # remove markdown code
-    text = re.sub(r"\[.*?\]\(.*?\)", "", text)  # remove markdown link text
-    text = re.sub(r"\*\*.*?\*\*", "", text)  # remove makrdown bold
-    text = re.sub(r"\#.*?\n", "", text)  # remove header of markdown
-    text = re.sub(r"[\U0001F600-\U0001F64F]", "", text)  # remove emoji
-    text = re.sub(r"\s+", " ", text, flags=re.I)
-    emoji.demojize(text)
-    return text.lower()
 
 
 def split_token(inputs: str) -> List:
@@ -584,3 +424,94 @@ def jump_exist_paper(pid: str):
     curr = f"{pid}.csv"
     exist_pids = os.listdir("./datafolder/arxiv_qa/partition/")
     return True if curr in exist_pids else False
+
+
+def merge_partition_files() -> pd.DataFrame:
+    base_path = "./datafolder/arxiv_qa/partition/"
+    df = pd.DataFrame(columns=['paper_id', 'doc_id', 'title', 'doc'])
+
+    for file_name in os.listdir(base_path):
+        curr = pd.read_csv(base_path + file_name)
+        df = pd.concat([df, curr], axis=0)
+
+    return df
+
+
+def no_multi_spaces(text):
+    return re.sub(r"\s+", " ", text, flags=re.I)
+
+
+def normalize_whitespace(text):
+    return re.sub(r'\s{2,}', ' ', text)
+
+
+def normalize_symbol(text: str) -> str:
+    return re.sub(r'[^\w\s]', '', text)
+
+
+def cleaning_words(text):
+    text = re.sub(r"[^\w\s.,!?\"'\-]", "", text)  # remove the not sentence symbol
+    text = re.sub(r"<[^>]+>", "", text)  # remove markdown code
+    text = re.sub(r"\[.*?\]\(.*?\)", "", text)  # remove markdown link text
+    text = re.sub(r"\*\*.*?\*\*", "", text)  # remove makrdown bold
+    text = re.sub(r"\#.*?\n", "", text)  # remove header of markdown
+    text = re.sub(r"[\U0001F600-\U0001F64F]", "", text)  # remove emoji
+    text = re.sub(r"\s+", " ", text, flags=re.I)
+    emoji.demojize(text)
+    return text.lower()
+
+
+def init_normalizer(mode: str = "cased", language: str = "en") -> Normalizer:
+    """ function for initializing the Text Normalizer from NVIDIA NeMo
+    Args:
+        mode (str): options for "lower_cased", "cased"
+        language (str): default setting is english "en"
+
+    Reference:
+        https://docs.nvidia.com/nemo-framework/user-guide/latest/nemotoolkit/nlp/text_normalization/wfst/wfst_text_normalization.html#text-normalization
+    """
+    return Normalizer(
+        input_case=mode,
+        lang=language
+    )
+
+
+def apply_normalizer(normalizer: Normalizer, text: str) -> str:
+    """ wrapper function for Text Normalizer from NVIDIA NeMo
+
+    normalizer will do normalize tokens from written to spoken form
+    e.g. 12 kg -> twelve kilograms
+
+    normalize function's param explain:
+        text: string that may include semiotic classes
+        punct_pre_process: whether to perform punctuation pre-processing, for example, [25] -> [ 25 ]
+        punct_post_process: whether to normalize punctuation
+        verbose: whether to print intermediate meta information
+
+    Reference:
+        https://github.com/NVIDIA/NeMo-text-processing/blob/main/nemo_text_processing/text_normalization/normalize.py
+        https://docs.nvidia.com/nemo-framework/user-guide/latest/nemotoolkit/nlp/text_normalization/wfst/wfst_text_normalization.html#text-normalization
+    """
+    if not isinstance(text, str):
+        text = str(text)
+
+    return normalizer.normalize(
+        text,
+        verbose=False,
+        punct_post_process=False
+    )
+
+
+def apply_template(tokenizer: AutoTokenizer, prompt: str) -> str:
+    """ wrapper function for AutoTokenizer.apply_chat_template() """
+    message = [
+        {
+            "role": "user",
+            "content": f"{prompt}"
+        }
+    ]
+    return tokenizer.apply_chat_template(
+        message,
+        tokenize=False,
+        add_generation_prompt=True
+    )
