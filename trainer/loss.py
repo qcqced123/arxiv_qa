@@ -269,6 +269,38 @@ class BatchDotProductContrastiveLoss(nn.Module):
         return contrastive_loss / labels.shape[0]
 
 
+class InfoNCELoss(nn.Module):
+    """InforNCE (Information Noise-Contrastive Estimation) Loss for Self-Supervised Learning
+    This loss is implemented for microsoft E5 model, which is used for Text-Similarity tasks
+
+    Args:
+        metric(str): distance metrics, default is cosine similarity
+
+    Maths:
+        L = -(1/N) * log(exp(sim(Qi, Pi) / (exp(sim(Qi, Pi) + sum(exp(sim(Qi, Pij)))))
+
+        N = number of input batches
+        Qi = i-th query pooling output from MeanPooling
+        Pi = i-th positive pooling output from MeanPooling
+        Pij = j-th positive pooling output from MeanPooling
+
+    References:
+        https://arxiv.org/pdf/1807.03748
+        https://arxiv.org/pdf/2212.03533
+        https://paperswithcode.com/method/infonce
+    """
+    def __init__(self, metric: str = "cosine") -> None:
+        super(InfoNCELoss, self).__init__()
+        self.distance = SelectDistances(metric)
+
+    def forward(self, q_emb: Tensor, p_emb: Tensor) -> Tensor:
+        # input batch size
+        batch = q_emb.size(0)
+        pos_score = torch.exp(self.distance(q_emb, p_emb[0, :]))
+        neg_score = torch.sum(torch.exp(self.distance(q_emb, p_emb[1:, :])))
+        nce_loss = -(1 / batch) * torch.log(pos_score / (pos_score + neg_score))
+        return nce_loss
+
 class ArcFace(nn.Module):
     """ArcFace Pytorch Implementation
 
