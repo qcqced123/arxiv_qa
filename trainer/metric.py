@@ -163,16 +163,15 @@ def f_beta(y_true: np.ndarray, y_pred: np.ndarray, cfg: configuration.CFG, beta:
     return round(np.mean(score), 4)
 
 
-def cosine_similarity(a: Tensor, b: Tensor, eps=1e-8) -> np.ndarray:
+def cosine_similarity(a: Tensor, b: Tensor, eps=1e-8) -> Tensor:
     """ calculate cosine similarity for two tensors of hidden states
-    you must pass detached tensor which is already on CPU not GPU
     Args:
         a: Tensor, shape of [batch*seq, dim]
         b: Tensor, shape of [batch*seq, dim]
         eps: for numerical stability
     """
     metric = nn.CosineSimilarity(dim=-1, eps=eps)
-    output = metric(a, b).mean().numpy()
+    output = metric(a, b)
     return output
 
 

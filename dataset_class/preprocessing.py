@@ -11,6 +11,23 @@ from transformers import AutoTokenizer
 from typing import List, Tuple, Dict, Callable, Any
 from datasets import load_dataset, Dataset, DatasetDict
 from nemo_text_processing.text_normalization.normalize import Normalizer
+from sklearn.model_selection import StratifiedKFold, GroupKFold, train_test_split
+
+
+def dataset_split(cfg: configuration.CFG, df: pd.DataFrame) -> Tuple[pd.DataFrame, pd.DataFrame]:
+    """ Split dataset from pandas.DataFrame with sklearn.train_test_split
+
+    Args:
+        cfg: configuration.CFG, needed to load split ratio, seed value
+        df: pandas.DataFrame, dataset from csv file
+    """
+    train, valid = train_test_split(
+        df,
+        test_size=cfg.split_ratio,
+        random_state=cfg.seed,
+        shuffle=True,
+    )
+    return train, valid
 
 
 def chunking(cfg: configuration.CFG, sequences: Dict) -> List[str]:

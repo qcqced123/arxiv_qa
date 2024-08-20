@@ -6,6 +6,8 @@ import torch.nn.functional as F
 from torch import Tensor
 from typing import Iterable, Dict
 from sentence_transformers.util import cos_sim
+
+from trainer.metric import cosine_similarity
 from trainer.distance_metric import SelectDistances
 
 
@@ -273,8 +275,8 @@ class InfoNCELoss(nn.Module):
     """InforNCE (Information Noise-Contrastive Estimation) Loss for Self-Supervised Learning
     This loss is implemented for microsoft E5 model, which is used for Text-Similarity tasks
 
-    Args:
-        metric(str): distance metrics, default is cosine similarity
+    First index of passage embedding tensor(p_emb in source code) is the positive sample for query embedding,
+    Rest of indices of tensor is the negative sample for query embedding
 
     Maths:
         L = -(1/N) * log(exp(sim(Qi, Pi) / (exp(sim(Qi, Pi) + sum(exp(sim(Qi, Pij)))))
@@ -289,17 +291,16 @@ class InfoNCELoss(nn.Module):
         https://arxiv.org/pdf/2212.03533
         https://paperswithcode.com/method/infonce
     """
-    def __init__(self, metric: str = "cosine") -> None:
+    def __init__(self) -> None:
         super(InfoNCELoss, self).__init__()
-        self.distance = SelectDistances(metric)
+        self.distance = cosine_similarity
 
     def forward(self, q_emb: Tensor, p_emb: Tensor) -> Tensor:
-        # input batch size
-        batch = q_emb.size(0)
-        pos_score = torch.exp(self.distance(q_emb, p_emb[0, :]))
-        neg_score = torch.sum(torch.exp(self.distance(q_emb, p_emb[1:, :])))
-        nce_loss = -(1 / batch) * torch.log(pos_score / (pos_score + neg_score))
+        pos_score = torch.exp(self.distance(q_emb, p_emb[:, 0, :]))
+        neg_score = torch.sum(torch.exp(self.distance(q_emb.unsqueeze(1), p_emb[:, 1:, :])), dim=1)
+        nce_loss = -1 * torch.log(pos_score / (pos_score + neg_score)).mean()
         return nce_loss
+
 
 class ArcFace(nn.Module):
     """ArcFace Pytorch Implementation
