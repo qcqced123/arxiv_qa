@@ -1,4 +1,5 @@
 import torch
+import random
 import pandas as pd
 import configuration as configuration
 
@@ -41,7 +42,7 @@ class PretrainDataset(Dataset):
 
 class QuestionDocumentMatchingDataset(Dataset):
     """ pytorch dataset module for QuestionDocumentMatching Task in metric learning
-    such as contrastive loss, arcface, multiple-negative ranking loss
+    such as contrastive loss, arcface, multiple-negative ranking loss, InfoNCE
 
     workflow:
         1) load dataframe: question-document relation dataset
@@ -60,32 +61,43 @@ class QuestionDocumentMatchingDataset(Dataset):
         super().__init__()
         self.cfg = cfg
         self.tokenizer = tokenizing
-        self.questions = df['question'].tolist()
-        self.documents = df['doc'].tolist()
-        self.labels = df['label'].tolist()
+        self.questions = df["question"].tolist()
+        self.contexts = df["inputs"].tolist()
 
     def __len__(self) -> int:
         return len(self.questions)
 
+    def cal_seq_len(self, context: str):
+        """function for calculating the input sequence's length by query encoder's pretrained tokenizer
+
+        Args:
+            context (str): text to calculate the sequence length
+        """
+        return self.tokenizer.encode(context, add_special_tokens=False).__len__()
+
     def __getitem__(self, item: int) -> Dict[str, Tensor]:
         cls, sep = self.cfg.tokenizer.cls_token, self.cfg.tokenizer.sep_token
+        question, context = no_multi_spaces(self.questions[item]), no_multi_spaces(self.contexts[item])
+        prompt = f"{cls} query: " + question + f" {sep} passage: " + context + f" {sep}"
 
-        query = subsequent_tokenizing(
-            self.cfg,
-            no_multi_spaces(self.questions[item])
-        )
-        document = subsequent_tokenizing(
-            self.cfg,
-            no_multi_spaces(self.documents[item])
-        )
+        # calculate the left context size in input prompt
+        # random sampling for making negative samples of metric learning
+        left = self.cfg.max_len - self.cal_seq_len(prompt)
+        indices = list(range(len(self.questions)))
+        random.shuffle(indices)
 
-        sequences, _ = adjust_sequences(
-            [query, document],
-            self.cfg.max_len-5
-        )
+        i = 0
+        while left >= 128:
+            cnt = indices[i]
+            if cnt != item:
+                curr = self.contexts[cnt]
+                left -= self.cal_seq_len(curr)
+                prompt += f" {sep} passage: {curr} {sep}"
 
-        query, document = [self.cfg.tokenizer.decode(seq) for seq in sequences]
-        prompt = f"{cls} " + query + f" {sep} " + document + f" {sep}"
+            i += 1
+
+        # encode the input prompt
+        # for input_ids, attention_mask
         batches = self.tokenizer(
                 text=prompt,
                 cfg=self.cfg,
@@ -94,14 +106,13 @@ class QuestionDocumentMatchingDataset(Dataset):
                 padding=False,
                 add_special_tokens=False,
             )
-        # for input_ids, attention_mask
         for k, v in batches.items():
             batches[k] = torch.as_tensor(v)
 
         # find sep token index for making query index mask and document index mask
         # query tensor range: 1 ~ q_i, document tensor range: q_i+1 ~ d_i
         counter = 0
-        q_i, d_i = None, None
+        q_i, d_i = None, []
         for i, v in enumerate(batches['input_ids']):
             if not counter and v == self.cfg.tokenizer.sep_token_id:
                 q_i = i
@@ -113,7 +124,6 @@ class QuestionDocumentMatchingDataset(Dataset):
 
         batches['query_index'] = torch.as_tensor(q_i)
         batches['document_index'] = torch.as_tensor(d_i)
-        batches['labels'] = torch.as_tensor(self.labels[item])
         return batches
 
 
