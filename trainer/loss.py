@@ -204,9 +204,11 @@ class ContrastiveLoss(nn.Module):
 
     Examples:
         model = SentenceTransformer('all-MiniLM-L6-v2')
+
         train_examples = [
             InputExample(texts=['This is a positive pair', 'Where the distance will be minimized'], label=1),
             InputExample(texts=['This is a negative pair', 'Their distance will be increased'], label=0)]
+
         train_dataloader = DataLoader(train_examples, shuffle=True, batch_size=2)
         train_loss = losses.ContrastiveLoss(model=model)
 
@@ -271,8 +273,77 @@ class BatchDotProductContrastiveLoss(nn.Module):
         return contrastive_loss / labels.shape[0]
 
 
+class BatchInfoNCELoss(nn.Module):
+    """ Batch InfoNCE (Information Noise-Contrastive Estimation) Loss for Self-Supervised Learning
+    This loss is implemented for microsoft E5 model, which is used for Text-Similarity tasks
+
+    Single instance shape in batch is the positive pair (query, document)
+    For the computational efficiency, we use the other instances in current batch as negative samples
+
+    Same index of two inputs as q_emb, p_emb are meaning of the positive pair, others are negative pairs
+    For the batch-wise calculation of InfoNCE, we slightly change the calculation algorithm from vanilla infoNCE
+
+    So, diagonal elements of return matrix from method "sim_matrix()" will be pos_score
+    non-diagonal elements of return matrix from method "sim_matrix()" will be neg_score
+
+    total pos_score will be calculated by torch.trace() (diagonal elements sum)
+    total neg_score will be calculated by torch.sum() - torch.trace()
+
+    Example:
+        q_emb: torch.size(6, 768)
+        p_emb: torch.size(6, 768)
+
+        result of sim_matrix: torch.size(6, 6)
+            [[ 0.6225,  0.5543, -0.0962,  0.6337,  0.1650, -0.6093],
+            [-0.0844, -0.6388,  0.0609, -0.1959,  0.0655,  0.2964],
+            [ 0.2681, -0.1342, -0.7908,  0.4721,  0.7680,  0.4268],
+            [ 0.2894,  0.3167, -0.5420,  0.4276,  0.4901,  0.0731],
+            [ 0.7118, -0.4730, -0.7930,  0.9062,  0.9460,  0.1827],
+            [-0.1477, -0.8213, -0.8121,  0.4299,  0.6379,  0.7616]]
+
+    Maths:
+        L = -(1/N) * log(exp(sim(Qi, Pi) / (exp(sim(Qi, Pi) + sum(exp(sim(Qi, Pij)))))
+
+        N = number of input batches
+        Qi = i-th query pooling output from MeanPooling
+        Pi = i-th positive pooling output from MeanPooling
+        Pij = j-th positive pooling output from MeanPooling
+
+    References:
+        https://arxiv.org/pdf/1807.03748
+        https://arxiv.org/pdf/2212.03533
+        https://paperswithcode.com/method/infonce
+    """
+    def __init__(self) -> None:
+        super(BatchInfoNCELoss, self).__init__()
+        self.distance = self.sim_matrix
+
+    @staticmethod
+    def sim_matrix(a: Tensor, b: Tensor, eps=1e-8) -> Tensor:
+        """ method for calculating cosine similarity with batch-wise, added eps version for numerical stability
+        return matrix will be calculated by exponent ops, following for original paper's algorithm
+
+        Args:
+            a (torch.Tensor): input matrix for calculating, especially in this project this matrix will be query_embedding
+            b (torch.Tensor): input matrix for calculating, especially in this project this matrix will be document_embedding
+            eps (float): value for numerical stability
+        """
+        a_n, b_n = a.norm(dim=1)[:, None], b.norm(dim=1)[:, None]
+        a_norm = a / torch.clamp(a_n, min=eps)
+        b_norm = b / torch.clamp(b_n, min=eps)
+        sim_mt = torch.mm(a_norm, b_norm.transpose(0, 1))
+        return torch.exp(sim_mt)
+
+    def forward(self, q_emb: Tensor, p_emb: Tensor) -> Tensor:
+        score_matrix = self.distance(q_emb, p_emb)
+        pos_score = torch.trace(score_matrix)
+        neg_score = torch.sum(score_matrix) - pos_score
+        nce_loss = -1 * torch.log(pos_score / (pos_score + neg_score)).mean()
+        return nce_loss
+
+
 class InfoNCELoss(nn.Module):
-    """InforNCE (Information Noise-Contrastive Estimation) Loss for Self-Supervised Learning
+    """InfoNCE (Information Noise-Contrastive Estimation) Loss for Self-Supervised Learning
     This loss is implemented for microsoft E5 model, which is used for Text-Similarity tasks
 
     First index of passage embedding tensor(p_emb in source code) is the positive sample for query embedding,

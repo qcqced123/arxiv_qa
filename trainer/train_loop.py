@@ -1,12 +1,11 @@
 import gc
 import wandb
 import torch
-from torch.optim.swa_utils import update_bn
 import numpy as np
 import trainer.trainer as trainer
 
+from typing import List
 from tqdm.auto import tqdm
-from typing import List, Dict
 from elasticsearch import Elasticsearch
 
 from configuration import CFG
@@ -56,7 +55,7 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     train_input = getattr(trainer, cfg.trainer)(cfg, g)  # init object
 
     loader_train, loader_valid, len_train = train_input.make_batch()
-    model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler, awp, swa_model, swa_scheduler = train_input.model_setting(
+    model, criterion, val_criterion, val_metric_list, optimizer, lr_scheduler = train_input.model_setting(
         len_train
     )
     train_val_method = train_input.train_val_fn
@@ -72,9 +71,6 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             val_criterion,
             val_metric_list,
             val_score_max,
-            val_score_max_2,
-            epoch,
-            awp,
         )
         wandb.log({
             '<epoch> Train Loss': train_loss,
@@ -91,25 +87,13 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             })
             print(f'Valid Best Loss: {np.round(val_score_max, 4)}')
 
-        # Check if Trainer need to Early Stop
+        # check if Trainer need to Early Stop
         early_stopping(val_score_max)
         if early_stopping.early_stop:
             break
 
         del train_loss
         gc.collect(), torch.cuda.empty_cache()
-
-        if cfg.swa and not early_stopping.early_stop:
-            update_bn(loader_train, swa_model)
-            swa_loss = train_input.swa_fn(loader_valid, swa_model, val_criterion)
-            print(f'[{epoch + 1}/{cfg.epochs}] SWA Val Loss: {np.round(swa_loss, 4)}')
-            wandb.log({'<epoch> SWA Valid Loss': swa_loss})
-            if val_score_max >= swa_loss:
-                print(f'[Update] Valid Score : ({val_score_max:.4f} => {swa_loss:.4f}) Save Parameter')
-                print(f'Best Score: {swa_loss}')
-                torch.save(model.state_dict(),
-                           f'{cfg.checkpoint_dir}_CV_{swa_loss}_{cfg.max_len}_{get_name(cfg)}_state_dict.pth')
-                wandb.log({'<epoch> Valid Loss': swa_loss})
 
     wandb.finish()
 

@@ -10,39 +10,33 @@
         "tokenizer_name": "intfloat/e5-large-v2",
         "pooling": "SubSequenceGEMPooling",
         "pow_value": 1,
-        "resume": false,
         "checkpoint_dir": "./saved/"
     },
 
     "fine_tune_options": {
-        "use_pretrained": true,
-        "hub": "huggingface",
         "max_len": 4096,
         "layer_norm_eps": 1e-7,
         "attention_probs_dropout_prob": 0.1,
         "hidden_dropout_prob": 0.1,
         "init_weight": "kaiming_normal",
         "initializer_range": 0.02,
-        "lora": false,
-        "qlora": true,
-        "prompt_tuning": false
+        "quantization": "QLoRA",
+        "lora": false
     },
 
     "data_settings": {
-        "datafolder": "arxiv_qa",
         "batching": "random",
         "split_ratio": 0.1,
         "epochs": 10,
-        "batch_size": 40,
-        "val_batch_size": 8,
+        "batch_size": 24,
+        "val_batch_size": 24,
         "val_check": 100000
     },
 
     "optimizer_options": {
         "optimizer": "AdamW",
         "llrd": false,
-        "layerwise_lr": 4e-4,
-        "layerwise_lr_decay": 0.95,
+        "lr": 2e-4,
         "weight_decay": 1e-2,
         "adam_epsilon": 1e-6,
         "use_bertadam": false,
@@ -61,12 +55,12 @@
         "gradient_checkpoint": true,
         "clipping_grad": true,
         "n_gradient_accumulation_steps": 1,
-        "max_grad_norm": 1000
+        "max_grad_norm": 1
     },
 
     "loss_options": {
-        "losses_fn": "InfoNCELoss",
-        "val_losses_fn": "InfoNCELoss",
+        "losses_fn": "BatchInfoNCELoss",
+        "val_losses_fn": "BatchInfoNCELoss",
         "reduction": "mean"
     },
 
@@ -86,8 +80,8 @@
         "stop_mode": "min",
         "patience": 3,
         "freeze": false,
-        "num_freeze": -1,
+        "num_freeze": 0,
         "reinit": false,
-        "num_reinit": 1
+        "num_reinit": 0
     }
 }

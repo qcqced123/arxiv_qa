@@ -2,6 +2,7 @@ import faiss
 import numpy as np
 import torch.nn as nn
 import configuration as configuration
+
 from torch import Tensor
 from typing import List
 from collections import Counter

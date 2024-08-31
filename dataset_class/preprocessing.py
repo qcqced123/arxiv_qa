@@ -171,66 +171,6 @@ def subsequent_tokenizing(cfg: configuration.CFG, text: str) -> Any:
     return inputs['input_ids']
 
 
-def find_index(x: np.ndarray, value: np.ndarray) -> int:
-    """ Method for find some tensor element's index
-
-    Args:
-        x: tensor object, which is contained whole tensor elements
-        value: element that you want to find index
-    """
-    tensor_index = int(np.where(x == value)[0])
-    return tensor_index
-
-
-def subsequent_decode(cfg: configuration.CFG, token_list: List) -> Any:
-    """ Return decoded text from subsequent_tokenizing & adjust_sequences
-    For making prompt text
-
-    Args:
-        cfg: configuration.CFG, needed to load tokenizer from Huggingface AutoTokenizer
-        token_list: token list from subsequent_tokenizing & adjust_sequences
-    """
-    output = cfg.tokenizer.decode(token_list)
-    return output
-
-
-def sequence_length(cfg, text_list: list) -> list:
-    """ Get sequence length of all text data for checking statistics value """
-    length_list = []
-    for text in tqdm(text_list):
-        tmp_text = tokenizing(cfg, text)['attention_mask']
-        length_list.append(tmp_text.count(1))
-    return length_list
-
-
-def check_null(df: pd.DataFrame) -> pd.Series:
-    """ check if input dataframe has null type object...etc
-    """
-    return df.isnull().sum()
-
-
-def null2str(df: pd.DataFrame) -> pd.DataFrame:
-    """ Convert null type object to string type object
-    """
-    df = df.fillna(' ')
-    return df
-
-
-def load_data(data_path: str) -> pd.DataFrame:
-    """ Load data_folder from csv file like as insert.csv, test.csv, val.csv
-    """
-    df = pd.read_csv(data_path)
-    return df
-
-
-def split_token(inputs: str) -> List:
-    """ Convert mal form list (ex. string list in pd.DataFrame) to Python List object & elementwise type casting
-    """
-    tmp = inputs.split()
-    result = list(map(int, tmp))
-    return result
-
-
 def split_list(inputs: List, max_length: int, instance_max: int) -> List[List]:
     """ Split List into sub shorter list, which is longer than max_length
     """
@@ -241,34 +181,6 @@ def split_list(inputs: List, max_length: int, instance_max: int) -> List[List]:
 def split_longer_text_with_sliding_window(inputs: List[List], max_length: int = 512, window_size: int = 500) -> List[List[List[int]]]:
     """ Flatten Nested List to 1D-List """
     return [inputs[i:i + max_length] for i in range(0, len(inputs), max_length-window_size)]
-
-
-def preprocess4tokenizer(input_ids: List, token_type_ids: List, attention_mask: List):
-    """ Preprocess function for handling exception in inputs data instance
-    which is some of input_ids, token_type_ids, attention_mask are not started with [CLS] token or are not ended with [SEP] token
-    """
-    for i, inputs in tqdm(enumerate(input_ids)):
-        if inputs[0] != 1:
-            inputs.insert(0, 1)
-            token_type_ids[i].insert(0, 0)
-            attention_mask[i].insert(0, 1)
-        if inputs[-1] != 2:
-            inputs.append(2)
-            token_type_ids[i].append(0)
-            attention_mask[i].append(1)
-    return input_ids, token_type_ids, attention_mask
-
-
-def cut_instance(input_ids: List, token_type_ids: List, attention_mask: List, min_length: int = 256):
-    """ Function for cutting instance which is shorter than min_length
-    """
-    n_input_ids, n_token_type_ids, n_attention_mask = [], [], []
-    for i, inputs in tqdm(enumerate(input_ids)):
-        if len(inputs) >= min_length:
-            n_input_ids.append(inputs)
-            n_token_type_ids.append(token_type_ids[i])
-            n_attention_mask.append(attention_mask[i])
-    return n_input_ids, n_token_type_ids, n_attention_mask
 
 
 def save_pkl(input_dict: Any, filename: str) -> None:
@@ -346,91 +258,6 @@ def load_all_types_dataset(path: str) -> pd.DataFrame:
     return output
 
 
-def split_jsonl(input_file: str, output_dir: str, chunk_size: str) -> int:
-    """ Split a large jsonl file into smaller jsonl files
-
-    Args:
-        input_file: str, path to the input jsonl file
-        output_dir: str, path to the output directory
-        chunk_size: int, number of lines in each output file,
-                         this value determines the number of output files and size of each file
-    """
-    with open(input_file, 'r', encoding='utf-8') as f:
-        lines = f.readlines()
-
-    total_lines = len(lines)
-    num_chunks = (total_lines + chunk_size - 1) // chunk_size
-
-    for i in tqdm(range(num_chunks)):
-        chunk_start = i * chunk_size
-        chunk_end = min((i + 1) * chunk_size, total_lines)
-        output_file = os.path.join(output_dir, f'part{i+1}.jsonl')
-
-        with open(output_file, 'w', encoding='utf-8') as out_f:
-            for line in lines[chunk_start:chunk_end]:
-                out_f.write(line)
-    return num_chunks
-
-
-def jsonl_to_json(jsonl_file: str, json_file: str) -> None:
-    """ Convert jsonl file to json file
-
-    Args:
-        jsonl_file: input jsonl file path
-        json_file: output json file path, which is converted from jsonl file
-
-    Examples:
-        jsonl_to_json('./data_folder/amazon/beauty.jsonl', './data_folder/amazon/beauty.json')
-    """
-    with open(jsonl_file, 'r', encoding='utf-8') as f:
-        jsonl_data = f.readlines()
-
-    json_data = [json.loads(line.strip()) for line in jsonl_data]
-    with open(json_file, 'w', encoding='utf-8') as f:
-        json.dump(json_data, f, ensure_ascii=False, indent=4)
-
-
-def jsonl_to_series(jsonl_file: str) -> pd.DataFrame:
-    """ Convert jsonl file to pd.DataFrame with removing duplicate ASIN Code in Amazon Dataset
-    for building ASIN DB, not Review Dataset, output of this function will be used to primary key in DB
-
-    Args:
-        jsonl_file: input jsonl file path
-
-    """
-    from collections import defaultdict
-
-    with open(jsonl_file, 'r', encoding='utf-8') as f:
-        jsonl_data = f.readlines()
-
-    desired_key = 'asin'
-    json_dict = defaultdict(set)
-
-    for line in jsonl_data:
-        json_obj = json.loads(line.strip())
-        if desired_key in json_obj:
-            json_dict[desired_key].add(json_obj[desired_key])
-
-    json_dict[desired_key] = list(json_dict[desired_key])
-    return pd.DataFrame.from_dict(json_dict)
-
-
-def jsonl_to_df(jsonl_file: str) -> pd.DataFrame:
-    """ Convert jsonl file to pd.DataFrame with removing duplicate ASIN Code in Amazon Dataset
-    for building ASIN DB, not Review Dataset, output of this function will be used to primary key in DB
-
-    Args:
-        jsonl_file: input jsonl file path
-
-    """
-    data = []
-    with open(jsonl_file, 'r', encoding='utf-8') as f:
-        for line in f:
-            json_obj = json.loads(line)
-            data.append(json_obj)
-    return pd.DataFrame(data)
-
-
 def jump_exist_paper(pid: str):
     """jump function if the current pid pdf file is already in partition folder,
     which is meaning that file is already processed by chunking algorithm
@@ -456,14 +283,6 @@ def merge_partition_files() -> pd.DataFrame:
 
 def no_multi_spaces(text):
     return re.sub(r"\s+", " ", text, flags=re.I)
-
-
-def normalize_whitespace(text):
-    return re.sub(r'\s{2,}', ' ', text)
-
-
-def normalize_symbol(text: str) -> str:
-    return re.sub(r'[^\w\s]', '', text)
 
 
 def cleaning_words(text):
