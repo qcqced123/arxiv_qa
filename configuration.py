@@ -89,9 +89,9 @@ class CFG:
 
     ##########################################################################################################
 
-    amp_scaler = True
-    clipping_grad = True
-    gradient_checkpoint = True
+    amp_scaler = False
+    clipping_grad = False
+    gradient_checkpoint = False
 
     max_grad_norm = 1
     n_gradient_accumulation_steps = 1

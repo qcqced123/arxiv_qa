@@ -7,7 +7,7 @@
         "task": "MetricLearningModel",
         "dataset": "QuestionDocumentMatchingDataset",
         "model_name": "saved/e5-large-v2",
-        "tokenizer_name": "intfloat/e5-large-v2",
+        "tokenizer_name": "saved/e5-large-v2",
         "pooling": "SubSequenceGEMPooling",
         "pow_value": 1,
         "checkpoint_dir": "./saved/"
@@ -53,7 +53,7 @@
 
     "gradient_settings": {
         "amp_scaler": false,
-        "gradient_checkpoint": true,
+        "gradient_checkpoint": false,
         "clipping_grad": true,
         "n_gradient_accumulation_steps": 1,
         "max_grad_norm": 1
