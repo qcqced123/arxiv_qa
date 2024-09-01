@@ -172,7 +172,7 @@ def cosine_similarity(a: Tensor, b: Tensor, eps=1e-8) -> Tensor:
         eps: for numerical stability
     """
     metric = nn.CosineSimilarity(dim=-1, eps=eps)
-    output = metric(a, b)
+    output = metric(a, b).mean()
     return output
 
 
