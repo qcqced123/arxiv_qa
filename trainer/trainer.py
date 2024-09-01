@@ -515,14 +515,12 @@ class MetricLearningTuner:
                     '<Val Step> Valid Loss': valid_losses.avg
                 })
 
-                # we calculate the top-1 accuracy for each batch instance
-                # for calculating the top-1 accuracy
-                queries, contexts = query_h.detach().cpu().numpy(), context_h.detach().cpu().numpy()
+                # calculate the cosine similarity between positive pair of query and document
+                queries, contexts = query_h.detach().cpu(), context_h.detach().cpu()
                 for i, metric_fn in enumerate(val_metric_list):
                     scores = metric_fn(
-                        query=queries,
-                        document=contexts,
-                        k=1
+                        queries,
+                        contexts,
                     )
                     valid_metrics[self.metric_list[i]].update(scores, batch_size)
                     wandb.log({
