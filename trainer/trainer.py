@@ -464,6 +464,7 @@ class MetricLearningTuner:
 
             # branch for conducting validation stage when the current step value is same as config's "val_check" value
             if ((step + 1) % self.cfg.val_check == 0) or ((step + 1) == len(loader_train)):
+                gc.collect()
                 valid_loss = self.valid_fn(
                     loader_valid,
                     model,
