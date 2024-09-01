@@ -19,6 +19,16 @@ def sync_config(config: CFG, json_config: json) -> None:
     """
     for settings in json_config.values():
         for k, v in settings.items():
+            if k == "model_dtype":
+                if v == "torch.float32":
+                    v = torch.float32
+
+                elif v == "torch.float16":
+                    v = torch.float16
+
+                elif v == "torch.bfloat64":
+                    v = torch.bfloat16
+
             setattr(config, k, v)
 
     setattr(config, 'tokenizer', AutoTokenizer.from_pretrained(config.model_name))  # set tokenizer

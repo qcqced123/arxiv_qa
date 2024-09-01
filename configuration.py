@@ -147,6 +147,7 @@ class CFG:
 
     ##########################################################################################################
 
+    model_dtype = "auto"  # options: torch.bfloat16, torch.float16, torch.float32, "auto"
     quantization = None  # pass the quantization options (QLoRA, AWQ, LLM.int8())
     lora = False
     lora_rank = 8

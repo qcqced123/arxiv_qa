@@ -187,7 +187,7 @@ class WholeWordMaskingCollator(PretrainingMaskingCollator):
     def _whole_word_mask(
             self,
             input_tokens: List[str],
-            max_predictions: int = CFG.max_seq
+            max_predictions: int = CFG.max_len
     ) -> List[int]:
         cand_indexes = []
         for i, token in enumerate(input_tokens):

@@ -20,7 +20,7 @@ g.manual_seed(CFG.seed)
 
 
 def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
-    """ Base Trainer Loop Function
+    """ Base trainer loop function
     1) Initialize Trainer Object
     2) Make Early Stopping Object
     3) Initialize Metric Checker
@@ -34,10 +34,11 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     wandb.init(
         project=cfg.name,
         name=sub_name,
-        config=class2dict(cfg),
+        config=class2dict(cfg),  # write and save the current experiment config state to weight and bias
         group=group_name,
         job_type=cfg.pipeline_type,
-        entity="qcqced"
+        entity="qcqced",
+        resume=None
     )
 
     early_stopping = EarlyStopping(mode=cfg.stop_mode, patience=cfg.patience)

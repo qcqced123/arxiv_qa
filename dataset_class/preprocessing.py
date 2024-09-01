@@ -55,10 +55,10 @@ def group_texts(cfg: configuration.CFG, sequences: Dict) -> Dict:
     """
     concatenated_sequences = {k: sum(sequences[k], []) for k in sequences.keys()}
     total_length = len(concatenated_sequences[list(sequences.keys())[0]])
-    if total_length >= cfg.max_seq:
-        total_length = (total_length // cfg.max_seq) * cfg.max_seq
+    if total_length >= cfg.max_len:
+        total_length = (total_length // cfg.max_len) * cfg.max_len
     result = {
-        k: [t[i: i + cfg.max_seq] for i in range(0, total_length, cfg.max_seq)]
+        k: [t[i: i + cfg.max_len] for i in range(0, total_length, cfg.max_len)]
         for k, t in concatenated_sequences.items()
     }
     return result

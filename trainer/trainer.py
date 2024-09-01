@@ -11,9 +11,9 @@ import trainer.metric as metric
 import dataset_class.dataclass as dataset_class
 
 import vllm
-import tensorrt
-
 from vllm import LLM, SamplingParams
+
+from transformers import AutoConfig, AutoTokenizer
 
 from tqdm.auto import tqdm
 from typing import Union, List, Callable, Dict
@@ -23,7 +23,7 @@ from elasticsearch import Elasticsearch
 
 from configuration import CFG
 from model import model as task
-from model import mlm, clm, sbo
+from model import clm
 
 from db.run_db import get_encoder
 from dataset_class.preprocessing import dataset_split, load_all_types_dataset
@@ -323,6 +323,25 @@ class MetricLearningTuner:
         self.plm_cfg = AutoConfig.from_pretrained(self.cfg.model_name)
         self.df = load_all_types_dataset(f'./dataset_class/datafolder/arxiv_qa/arxiv_question_document_pair.csv')
 
+    @staticmethod
+    def save_model(model: nn.Module, config: AutoConfig, tokenizer: AutoTokenizer, to: str) -> None:
+        """ save the current state of model's config, tokenizer config
+
+        Args:
+            model (nn.Module):
+            config (AutoConfig):
+            tokenizer (AutoTokenizer):
+            to (str): save path for model, config, tokenizer
+
+        Returns:
+            None
+        """
+        print(f"Saving {model.dtype} model to {to}...")
+        model.save_pretrained(to)
+        tokenizer.save_pretrained(to)
+        config.save_pretrained(to)
+
+
     def make_batch(self) -> Union:
         train, valid = dataset_split(self.cfg, self.df)
         train_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, train)
@@ -348,7 +367,7 @@ class MetricLearningTuner:
     def model_setting(self, len_train: int) -> Union:
         # initialize and get the model module
         # transfer model in CPU to GPU
-        model = getattr(task, self.cfg.task)(self.cfg, len_train)
+        model = getattr(task, self.cfg.task)(self.cfg)
         model.to(self.cfg.device)
 
         # initialize and get the loss, metric module
@@ -455,7 +474,12 @@ class MetricLearningTuner:
                 if val_score_max >= valid_loss:
                     print(f'[Update] Total Valid Score : ({val_score_max:.4f} => {valid_loss:.4f}) Save Parameter')
                     print(f'Total Best Score: {valid_loss}')
-                    model.model.save_pretrain("")  # 모델 저장용 코드 피료함
+                    self.save_model(
+                        model=model.model,
+                        config=model.auto_cfg,
+                        tokenizer=self.cfg.tokenizer,
+                        to=self.cfg.checkpoint_dir
+                    )
                     val_score_max = valid_loss
 
         return losses.avg * self.cfg.n_gradient_accumulation_steps, val_score_max
