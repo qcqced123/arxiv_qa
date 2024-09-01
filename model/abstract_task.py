@@ -149,6 +149,26 @@ class AbstractTask:
             bias='none',
         )
 
+    @staticmethod
+    def mapping_lora_to_target_dtype(
+        model: nn.Module,
+        dtype=torch.bfloat16,
+    ):
+        """ function for mapping the float precision of LoRA weight to target data type in pytorch,
+        current default setting is torch.bfloat16 for numerical stability in backward process
+
+        Args:
+            model: the peft model you loaded with qlora
+            dtype: dtype that the model was trained using
+        """
+        with torch.no_grad():
+            for name, module in model.named_modules():
+                if "lora" in name:
+                    print(f"Converting dtype `{name}`...")
+                    for param in module.parameters(recurse=False):
+                        param.data = param.data.to(dtype)
+            return model
+
     def apply_peft_lora(self, model: nn.Module) -> nn.Module:
         """ class method for applying peft lora and qlora to pretrained model in fine-tune stage
         if you want to apply LoRA, QLoRA to your model, please check the model architecture what you want to apply
@@ -174,7 +194,11 @@ class AbstractTask:
             https://arxiv.org/abs/2305.14314
         """
         lora_config = self.get_lora_config()
-        peft_model = get_peft_model(model=model, peft_config=lora_config)
+        peft_model = get_peft_model(
+            model=model,
+            peft_config=lora_config,
+
+        )
         peft_model.enable_input_require_grads()
         return peft_model
 
@@ -221,8 +245,10 @@ class AbstractTask:
         model = self.get_model(mode=mode, config=config, bit_config=bit_config)
 
         # (optional) initialize the setting for LoRA
+        # (optional) initialize the model float precision of LoRA weight (default setting is torch.bfloat16
         if self.cfg.lora:
             model = self.apply_peft_lora(model)
+            model = self.mapping_lora_to_target_dtype(model, dtype=torch.bfloat16)
 
         # (optional) apply prompt tuning
         if self.cfg.prompt_tuning:

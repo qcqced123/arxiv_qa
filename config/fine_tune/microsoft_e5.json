@@ -20,7 +20,7 @@
         "hidden_dropout_prob": 0.1,
         "init_weight": "kaiming_normal",
         "initializer_range": 0.02,
-        "model_dtype": "auto",
+        "model_dtype": "torch.bfloat16",
         "quantization": "QLoRA",
         "lora": true
     },
@@ -31,7 +31,7 @@
         "epochs": 5,
         "batch_size": 32,
         "val_batch_size": 32,
-        "val_check": 1000
+        "val_check": 3500
     },
 
     "optimizer_options": {

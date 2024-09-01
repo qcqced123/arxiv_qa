@@ -26,7 +26,7 @@ def sync_config(config: CFG, json_config: json) -> None:
                 elif v == "torch.float16":
                     v = torch.float16
 
-                elif v == "torch.bfloat64":
+                elif v == "torch.bfloat16":
                     v = torch.bfloat16
 
             setattr(config, k, v)
