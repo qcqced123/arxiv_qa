@@ -338,7 +338,10 @@ class BatchInfoNCELoss(nn.Module):
         score_matrix = self.distance(q_emb, p_emb)
         pos_score = torch.trace(score_matrix)
         neg_score = torch.sum(score_matrix) - pos_score
+        print(f"pos score: {pos_score}")
+        print(f"neg score: {neg_score}")
         nce_loss = -1 * torch.log(pos_score / (pos_score + neg_score)).mean()
+        print(f"nce loss is: {nce_loss}")
         return nce_loss
 
 
