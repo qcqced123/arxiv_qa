@@ -10,7 +10,7 @@
         "tokenizer_name": "saved/e5-large-v2",
         "pooling": "SubSequenceGEMPooling",
         "pow_value": 1,
-        "checkpoint_dir": "./saved/"
+        "checkpoint_dir": "./saved/fine_tuned-qlora-e5-large-v2"
     },
 
     "fine_tune_options": {
