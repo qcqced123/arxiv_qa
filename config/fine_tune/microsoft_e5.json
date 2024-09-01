@@ -52,7 +52,7 @@
     },
 
     "gradient_settings": {
-        "amp_scaler": true,
+        "amp_scaler": false,
         "gradient_checkpoint": true,
         "clipping_grad": true,
         "n_gradient_accumulation_steps": 1,
