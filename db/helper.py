@@ -177,9 +177,9 @@ def save_model(
 if __name__ == '__main__':
     device = "cpu"
     model_dtype = torch.bfloat16
-    lora_path = ""
+    lora_path = "../saved/fine_tuned-qlora-e5-large-v2"
     model_name = "../saved/e5-large-v2"
-    output_path = "../saved/fine_tuned-qlora-e5-large-v2"
+    output_path = "../saved/merged-qlora-e5-large-v2"
 
     config = get_config(model_name)
     bit_config = get_bit_config()
