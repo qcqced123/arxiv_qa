@@ -455,7 +455,7 @@ class MetricLearningTuner:
 
             # logging insert loss, gradient norm, lr to wandb
             lr = scheduler.get_lr()[0]
-            grad_norm = grad_norm.detach().cpu().numpy()
+            grad_norm = grad_norm.item()
 
             wandb.log({
                 '<Per Step> Total Train Loss': losses.avg,
