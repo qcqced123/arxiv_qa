@@ -370,8 +370,8 @@ class MetricLearningTuner:
         model.to(self.cfg.device)
 
         # initialize and get the loss, metric module
-        criterion = getattr(loss, self.cfg.loss_fn)
-        val_criterion = getattr(loss, self.cfg.val_loss_fn)
+        criterion = getattr(loss, self.cfg.loss_fn)()
+        val_criterion = getattr(loss, self.cfg.val_loss_fn)()
         val_metric_list = [getattr(metric, f'{metrics}') for metrics in self.metric_list]
 
         # set up the weight updating method
