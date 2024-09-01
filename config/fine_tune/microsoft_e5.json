@@ -29,9 +29,9 @@
         "batching": "random",
         "split_ratio": 0.1,
         "epochs": 5,
-        "batch_size": 128,
+        "batch_size": 120,
         "val_batch_size": 8,
-        "val_check": 10
+        "val_check": 1000
     },
 
     "optimizer_options": {
@@ -66,7 +66,7 @@
     },
 
     "metrics_options": {
-        "metrics": ["top_k_acc"]
+        "metrics": ["cosine_similarity"]
     },
 
     "common_settings": {
