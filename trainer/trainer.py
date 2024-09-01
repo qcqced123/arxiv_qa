@@ -496,7 +496,10 @@ class MetricLearningTuner:
     ) -> float:
         model.eval()
         valid_losses = AverageMeter()
-        valid_metrics = {self.metric_list[i]: AverageMeter() for i in range(len(self.metric_list))}
+        valid_metrics = {
+            "positive_cosine_similarity": AverageMeter(),
+            "negative_cosine_similarity": AverageMeter(),
+        }
         with torch.no_grad():
             for step, batch in enumerate(tqdm(loader_valid)):
                 inputs = {
@@ -515,19 +518,22 @@ class MetricLearningTuner:
                 valid_losses.update(loss.item(), batch_size)
 
                 wandb.log({
-                    '<Val Step> Valid Loss': valid_losses.avg
+                    '<Val Step> valid loss': valid_losses.avg
                 })
 
                 # calculate the cosine similarity between positive pair of query and document
                 queries, contexts = query_h.detach().cpu(), context_h.detach().cpu()
                 for i, metric_fn in enumerate(val_metric_list):
-                    scores = metric_fn(
+                    pos_score, neg_score = metric_fn(
                         queries,
                         contexts,
                     )
-                    valid_metrics[self.metric_list[i]].update(scores, batch_size)
+                    valid_metrics["positive_cosine_similarity"].update(pos_score, batch_size)
+                    valid_metrics["negative_cosine_similarity"].update(neg_score, batch_size)
+
                     wandb.log({
-                        f'<Val Step> Valid {self.metric_list[i]}': valid_metrics[self.metric_list[i]].avg,
+                        f'<Val Step> pos cosine sim': valid_metrics["positive_cosine_similarity"].avg,
+                        f'<Val Step> neg cosine sim': valid_metrics["negative_cosine_similarity"].avg,
                     })
 
         # clean up gpu cache

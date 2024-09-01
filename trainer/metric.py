@@ -1,10 +1,12 @@
 import faiss
 import numpy as np
+
+import torch
 import torch.nn as nn
 import configuration as configuration
 
 from torch import Tensor
-from typing import List
+from typing import List, Tuple
 from collections import Counter
 
 
@@ -162,6 +164,33 @@ def f_beta(y_true: np.ndarray, y_pred: np.ndarray, cfg: configuration.CFG, beta:
         score = numerator / denominator
 
     return round(np.mean(score), 4)
+
+
+def pair_cosine_sim(a: Tensor, b: Tensor, eps=1e-8) -> Tuple[float, float]:
+    """ method for calculating cosine similarity with pair-wise, added eps version for numerical stability
+    return matrix will be calculated by exponent ops, following for original paper's algorithm
+
+    "pair-wise" in this metric function means that calculate the cosine similarity
+    between positive pair, negative pair respectively
+
+    because the text-similarity task must pull the positive data and push the negative data.
+    so for calculating the model's performance in text-similarity precisely, we transform the pure cosine similarity algorithm slightly
+
+    Args:
+        a (torch.Tensor): input matrix for calculating, especially in this project this matrix will be query_embedding
+        b (torch.Tensor): input matrix for calculating, especially in this project this matrix will be document_embedding
+        eps (float): value for numerical stability
+    """
+    a_n, b_n = a.norm(dim=1)[:, None], b.norm(dim=1)[:, None]
+    a_norm = a / torch.clamp(a_n, min=eps)
+    b_norm = b / torch.clamp(b_n, min=eps)
+    sim_mt = torch.mm(a_norm, b_norm.transpose(0, 1))
+
+    pos_sum = torch.trace(sim_mt)
+
+    pos_score = pos_sum.mean().item()
+    neg_score = (torch.sum(sim_mt) - pos_sum).mean().item()
+    return pos_score, neg_score
 
 
 def cosine_similarity(a: Tensor, b: Tensor, eps=1e-8) -> Tensor:
