@@ -60,8 +60,8 @@
     },
 
     "loss_options": {
-        "losses_fn": "BatchInfoNCELoss",
-        "val_losses_fn": "BatchInfoNCELoss",
+        "loss_fn": "BatchInfoNCELoss",
+        "val_loss_fn": "BatchInfoNCELoss",
         "reduction": "mean"
     },
 

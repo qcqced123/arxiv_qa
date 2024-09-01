@@ -135,8 +135,6 @@ class CFG:
     val_loss_fn = "CrossEntropyLoss"
 
     metrics = []
-    losses_fn = []  # multiple loss function
-    val_losses_fn = []
 
     ##########################################################################################################
 
