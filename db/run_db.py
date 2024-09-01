@@ -67,9 +67,17 @@ def encode_text(encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer
     return:
         embedding tensor of input text
     """
-    
+    # tokenize the input text for embedding model
+    inputs = tokenizer(text, return_tensors="pt")
 
-    return encoder.encode(text, show_progress_bar=True)
+    # extract the input text's embedding tensor
+    h = encoder(**inputs)
+    features = h.last_hidden_state
+    embed = pooling(
+        last_hidden_state=features,
+        attention_mask=inputs["attention_mask"]
+    )
+    return embed
 
 
 def encode_docs(encoder: nn.Module, tokenizer: AutoTokenizer, df: pd.DataFrame) -> pd.DataFrame:
