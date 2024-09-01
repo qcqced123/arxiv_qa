@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import bitsandbytes as bnb
 
-from typing import Any
+from typing import Any, Optional
 from peft.utils import _get_submodules
 from peft import PeftModel, LoraConfig
 from peft import get_peft_config, get_peft_model
@@ -55,7 +55,7 @@ def get_bit_config() -> BitsAndBytesConfig:
 def get_qlora_model(
     model_name: str,
     config: AutoConfig,
-    bit_config: BitsAndBytesConfig,
+    bit_config: Optional[BitsAndBytesConfig, None],
     device: str,
     model_dtype: Any = "auto"
 ) -> nn.Module:
@@ -177,9 +177,9 @@ def save_model(
 if __name__ == '__main__':
     device = "cpu"
     model_dtype = torch.bfloat16
-    lora_path = "../saved/fine_tuned-qlora-e5-large-v2"
     model_name = "../saved/e5-large-v2"
-    output_path = "../saved/merged-qlora-e5-large-v2"
+    lora_path = "../saved/fine_tuned-qlora-e5-large-v2"
+    merged_output_path = "../saved/merged-qlora-e5-large-v2"
 
     config = get_config(model_name)
     bit_config = get_bit_config()
@@ -205,5 +205,5 @@ if __name__ == '__main__':
         tokenizer=tokenizer,
         config=config,
         model_dtype=model_dtype,
-        to=output_path
+        to=merged_output_path
     )

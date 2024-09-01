@@ -1,6 +1,7 @@
 import os
 import subprocess
 import pandas as pd
+import torch
 import torch.nn as nn
 
 from torch import Tensor
@@ -8,6 +9,7 @@ from typing import List, Dict
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from db.index_mapping import indexMapping
+from db.helper import get_config, get_tokenizer, get_qlora_model
 
 load_dotenv()
 
@@ -35,21 +37,28 @@ def get_encoder(model_name: str) -> nn.Module:
     """ function for getting encoder fr inserting question or document in local DB
 
     Args:
-        model_name: str, model name for the encoder
+        model_name (str): path of encoder model from local disk, already fine-tuned with question-document pair dataset
 
     return:
         nn.Module
     """
+    config = get_config(model_name)
+    model = get_qlora_model(
+        model_name=model_name,
+        config=config,
+        bit_config=None,
+        device="cuda:0",
+        model_dtype=torch.bfloat16
+    )
+    return model
 
-    return model_name
 
-
-def encode_text(text: str, encoder) -> Tensor:
-    """ function for encoding
+def encode_text(encoder: nn.Module, text: str) -> Tensor:
+    """ function for extracting the embedding of documents
 
     Args:
+        encoder (nn.Module): embedding mapper of input texts
         text: str, text for encoding
-        encoder: SentenceTransformer, embedding mapper for encoding
 
     return:
         Tensor, encoded text
