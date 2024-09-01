@@ -8,7 +8,7 @@ import torch
 import torch.nn as nn
 import bitsandbytes as bnb
 
-from typing import Any, Optional
+from typing import Any
 from peft.utils import _get_submodules
 from peft import PeftModel, LoraConfig
 from peft import get_peft_config, get_peft_model
@@ -55,7 +55,7 @@ def get_bit_config() -> BitsAndBytesConfig:
 def get_qlora_model(
     model_name: str,
     config: AutoConfig,
-    bit_config: Optional[BitsAndBytesConfig, None],
+    bit_config: BitsAndBytesConfig,
     device: str,
     model_dtype: Any = "auto"
 ) -> nn.Module:
