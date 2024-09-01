@@ -6,7 +6,7 @@
         "loop": "train_loop",
         "task": "MetricLearningModel",
         "dataset": "QuestionDocumentMatchingDataset",
-        "model_name": "intfloat/e5-large-v2",
+        "model_name": "saved/e5-large-v2",
         "tokenizer_name": "intfloat/e5-large-v2",
         "pooling": "SubSequenceGEMPooling",
         "pow_value": 1,
