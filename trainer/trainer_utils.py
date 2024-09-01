@@ -133,6 +133,7 @@ def get_dataloader(
     shuffle: bool = True,
     collate_fn=None,
     sampler=None,
+    pin_memory: bool = True,
     drop_last: bool = True
 ) -> DataLoader:
     """ function for initiaflizing torch.utils.data.DataLoader Module
@@ -147,7 +148,7 @@ def get_dataloader(
             worker_init_fn=seed_worker,
             generator=generator,
             num_workers=cfg.num_workers,
-            pin_memory=True,
+            pin_memory=pin_memory,
             drop_last=drop_last
     )
     return dataloader

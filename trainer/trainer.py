@@ -359,6 +359,7 @@ class MetricLearningTuner:
             collate_fn=collate_fn,
             generator=self.generator,
             shuffle=False,
+            pin_memory=False,
             drop_last=False
         )
         return loader_train, loader_valid, len(self.df)
