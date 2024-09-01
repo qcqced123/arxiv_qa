@@ -351,7 +351,8 @@ class MetricLearningTuner:
             cfg=self.cfg,
             dataset=train_dataset,
             collate_fn=collate_fn,
-            generator=self.generator
+            generator=self.generator,
+            pin_memory = False,
         )
         loader_valid = get_dataloader(
             cfg=self.cfg,
