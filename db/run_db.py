@@ -44,7 +44,7 @@ def get_encoder(model_name: str) -> nn.Module:
     return model_name
 
 
-def encode_text(text: str, encoder: SentenceTransformer) -> Tensor:
+def encode_text(text: str, encoder) -> Tensor:
     """ function for encoding
 
     Args:
@@ -57,7 +57,7 @@ def encode_text(text: str, encoder: SentenceTransformer) -> Tensor:
     return encoder.encode(text, show_progress_bar=True)
 
 
-def encode_docs(df: pd.DataFrame, encoder: SentenceTransformer) -> pd.DataFrame:
+def encode_docs(df: pd.DataFrame, encoder) -> pd.DataFrame:
     """ function for encoding documents
 
     Args:
@@ -71,7 +71,7 @@ def encode_docs(df: pd.DataFrame, encoder: SentenceTransformer) -> pd.DataFrame:
     return df
 
 
-def search_candidates(query: str, encoder: SentenceTransformer, es: Elasticsearch, top_k: int = 5, candidates: int = 500) -> List[Dict]:
+def search_candidates(query: str, encoder, es: Elasticsearch, top_k: int = 5, candidates: int = 500) -> List[Dict]:
     """ function for semantic searching with input queries, finding best matched candidates in elastic search engine
 
     Args:
