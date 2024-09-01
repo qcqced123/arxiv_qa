@@ -186,11 +186,11 @@ def pair_cosine_sim(a: Tensor, b: Tensor, eps=1e-8) -> Tuple[float, float]:
     b_norm = b / torch.clamp(b_n, min=eps)
     sim_mt = torch.mm(a_norm, b_norm.transpose(0, 1))
 
-    batch = a.shape[0]
+    batch = sim_mt.shape[0]
     pos_sum = torch.trace(sim_mt)
 
     pos_score = (pos_sum / batch).item()
-    neg_score = ((torch.sum(sim_mt) - pos_sum) / batch).item()
+    neg_score = ((torch.sum(sim_mt) - pos_sum) / (batch**2 - batch)).item()
     return pos_score, neg_score
 
 
