@@ -341,7 +341,6 @@ class MetricLearningTuner:
         tokenizer.save_pretrained(to)
         config.save_pretrained(to)
 
-
     def make_batch(self) -> Union:
         train, valid = dataset_split(self.cfg, self.df)
         train_dataset = getattr(dataset_class, self.cfg.dataset)(self.cfg, train)
@@ -371,8 +370,8 @@ class MetricLearningTuner:
         model.to(self.cfg.device)
 
         # initialize and get the loss, metric module
-        criterion = getattr(loss, self.cfg.loss_fn)(self.cfg.reduction)
-        val_criterion = getattr(loss, self.cfg.val_loss_fn)(self.cfg.reduction)
+        criterion = getattr(loss, self.cfg.loss_fn)
+        val_criterion = getattr(loss, self.cfg.val_loss_fn)
         val_metric_list = [getattr(metric, f'{metrics}') for metrics in self.metric_list]
 
         # set up the weight updating method
