@@ -1,6 +1,5 @@
-import os
-import subprocess
 import pandas as pd
+
 import torch
 import torch.nn as nn
 
@@ -10,6 +9,9 @@ from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from db.index_mapping import indexMapping
 from db.helper import get_config, get_tokenizer, get_qlora_model
+
+from model.pooling import MeanPooling
+from transformers import AutoTokenizer
 
 load_dotenv()
 
@@ -53,30 +55,36 @@ def get_encoder(model_name: str) -> nn.Module:
     return model
 
 
-def encode_text(encoder: nn.Module, text: str) -> Tensor:
+def encode_text(encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer, text: str) -> Tensor:
     """ function for extracting the embedding of documents
 
     Args:
         encoder (nn.Module): embedding mapper of input texts
+        pooling (nn.Module): module of pooling encoder's output
+        tokenizer (AutoTokenizer): module of tokenizing the inputs
         text: str, text for encoding
 
     return:
-        Tensor, encoded text
+        embedding tensor of input text
     """
+    
+
     return encoder.encode(text, show_progress_bar=True)
 
 
-def encode_docs(df: pd.DataFrame, encoder) -> pd.DataFrame:
+def encode_docs(encoder: nn.Module, tokenizer: AutoTokenizer, df: pd.DataFrame) -> pd.DataFrame:
     """ function for encoding documents
 
     Args:
+        encoder:
+        tokenizer (AutoTokenizer):
         df: pd.DataFrame, dataframe containing [paper_id, doc_id, doc, doc embedding]
-        encoder: SentenceTransformer, embedding mapper for encoding
 
     return:
         pd.DataFrame, dataframe containing [paper id, doc id, title, doc, doc embedding]
     """
-    df['DocEmbedding'] = df['doc'].apply(lambda x: encode_text(x, encoder))
+    pooling = MeanPooling()
+    df['DocEmbedding'] = df['doc'].apply(lambda x: encode_text(encoder, pooling, tokenizer, x))
     return df
 
 
@@ -108,15 +116,20 @@ def search_candidates(query: str, encoder, es: Elasticsearch, top_k: int = 5, ca
     return candidate['hits']['hits']
 
 
-def insert_doc_embedding(encoder: nn.Module, es: Elasticsearch, df: pd.DataFrame) -> None:
+def insert_doc_embedding(encoder: nn.Module, tokenizer: AutoTokenizer, es: Elasticsearch, df: pd.DataFrame) -> None:
     """ function for inserting doc embedding into elastic search engine
 
     Args:
         encoder (nn.Module):
+        tokenizer (AutoTokenizer):
         es: Elasticsearch, elastic search engine
         df: pd.DataFrame, dataframe containing [paper id, doc id, doc, doc embedding]
     """
-    df = encode_docs(df, encoder)
+    df = encode_docs(
+        encoder=encoder,
+        tokenizer=tokenizer,
+        df=df,
+    )
     records = df.to_dict(orient='records')
     try:
         for record in records:

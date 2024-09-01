@@ -106,6 +106,7 @@ class CFG:
     max_len = 512
     epochs = 10
     batch_size = 64
+    val_batch_size = 64
     smart_batch = False
     val_check = 1000  # setting for validation check frequency (unit: step)
 

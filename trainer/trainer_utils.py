@@ -129,6 +129,7 @@ def collate(inputs: Dict) -> Dict:
 def get_dataloader(
     cfg: configuration.CFG,
     dataset: Dataset,
+    batch_size: int,
     generator: torch.Generator,
     shuffle: bool = True,
     collate_fn=None,
@@ -140,16 +141,16 @@ def get_dataloader(
     All Args are from torch.nn.utils.data.DataLoader except cfg
     """
     dataloader = DataLoader(
-            dataset,
-            batch_size=cfg.batch_size,
-            shuffle=shuffle,
-            collate_fn=collate_fn,
-            sampler=sampler,
-            worker_init_fn=seed_worker,
-            generator=generator,
-            num_workers=cfg.num_workers,
-            pin_memory=pin_memory,
-            drop_last=drop_last
+        dataset,
+        batch_size=batch_size,
+        shuffle=shuffle,
+        collate_fn=collate_fn,
+        sampler=sampler,
+        worker_init_fn=seed_worker,
+        generator=generator,
+        num_workers=cfg.num_workers,
+        pin_memory=pin_memory,
+        drop_last=drop_last
     )
     return dataloader
 

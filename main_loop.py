@@ -238,6 +238,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     # you can select the document encoder model in configuration json file
     elif pipeline_type == "insert":
         retriever = get_encoder(cfg.model_name)  # pass your encoder model's path
+        tokenizer = get_tokenizer(cfg.model_name)
         df = pd.read_csv('dataset_class/datafolder/arxiv_qa/arxiv_question_document_pair.csv')
         document_encoder(
             es=es,

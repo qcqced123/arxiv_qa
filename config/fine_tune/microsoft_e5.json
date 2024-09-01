@@ -29,7 +29,8 @@
         "batching": "random",
         "split_ratio": 0.1,
         "epochs": 5,
-        "batch_size": 104,
+        "batch_size": 128,
+        "val_batch_size": 64,
         "val_check": 10
     },
 

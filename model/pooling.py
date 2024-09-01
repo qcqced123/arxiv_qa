@@ -173,7 +173,7 @@ class GEMPooling(nn.Module):
 # Mean Pooling
 class MeanPooling(nn.Module):
     """ Module for pure mean pooling """
-    def __init__(self, auto_cfg):
+    def __init__(self, auto_cfg=None):
         super(MeanPooling, self).__init__()
 
     @staticmethod
