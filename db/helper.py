@@ -170,7 +170,6 @@ def save_model(
     config.save_pretrained(to)
 
     # save your model's tokenizer module
-    tokenizer.save_pretrained(to)
 
     return None
 

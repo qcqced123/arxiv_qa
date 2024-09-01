@@ -29,9 +29,9 @@
         "batching": "random",
         "split_ratio": 0.1,
         "epochs": 5,
-        "batch_size": 128,
+        "batch_size": 96,
         "val_batch_size": 32,
-        "val_check": 20
+        "val_check": 10
     },
 
     "optimizer_options": {
