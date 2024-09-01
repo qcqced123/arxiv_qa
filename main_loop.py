@@ -235,9 +235,10 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         df.to_csv(output_path, index=False)
 
     # branch for calling pipeline that inserts the document embedding into the elastic search engine
+    # you can select the document encoder model in configuration json file
     elif pipeline_type == "insert":
-        retriever = get_encoder()
-        df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/arxiv_paper_document_db.csv')
+        retriever = get_encoder(cfg.model_name)  # pass your encoder model's path
+        df = pd.read_csv('dataset_class/datafolder/arxiv_qa/arxiv_question_document_pair.csv')
         document_encoder(
             es=es,
             retriever=retriever,

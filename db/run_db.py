@@ -1,12 +1,12 @@
 import os
 import subprocess
 import pandas as pd
+import torch.nn as nn
 
 from torch import Tensor
 from typing import List, Dict
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
-from sentence_transformers import SentenceTransformer
 from db.index_mapping import indexMapping
 
 load_dotenv()
@@ -31,16 +31,17 @@ def delete_index(es: Elasticsearch) -> None:
     return
 
 
-def get_encoder(model_name: str = 'sentence-transformers/all-MiniLM-L6-v2') -> SentenceTransformer:
-    """ function for getting encoder
+def get_encoder(model_name: str) -> nn.Module:
+    """ function for getting encoder fr inserting question or document in local DB
 
     Args:
         model_name: str, model name for the encoder
 
     return:
-        SentenceTransformer, encoder object
+        nn.Module
     """
-    return SentenceTransformer(model_name)
+
+    return model_name
 
 
 def encode_text(text: str, encoder: SentenceTransformer) -> Tensor:
@@ -98,11 +99,11 @@ def search_candidates(query: str, encoder: SentenceTransformer, es: Elasticsearc
     return candidate['hits']['hits']
 
 
-def insert_doc_embedding(encoder: SentenceTransformer, es: Elasticsearch, df: pd.DataFrame) -> None:
+def insert_doc_embedding(encoder: nn.Module, es: Elasticsearch, df: pd.DataFrame) -> None:
     """ function for inserting doc embedding into elastic search engine
 
     Args:
-        encoder: SentenceTransformer, embedding mapper for encoding
+        encoder (nn.Module):
         es: Elasticsearch, elastic search engine
         df: pd.DataFrame, dataframe containing [paper id, doc id, doc, doc embedding]
     """
