@@ -33,7 +33,7 @@ indexMapping = {
         },
         "DocEmbedding": {
             "type": "dense_vector",
-            "dims": 384,
+            "dims": 1024,
             "index": True,
             "similarity": "cosine"
         }

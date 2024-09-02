@@ -24,7 +24,6 @@ def create_index(model_name: str, es: Elasticsearch) -> None:
     """
     try:
         config = get_config(model_name)
-        indexMapping["DocEmbedding"].dims = config.hidden_size
         es.indices.create(index="document_embedding", mappings=indexMapping)
 
     except Exception as e:
