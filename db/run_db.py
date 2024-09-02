@@ -192,6 +192,7 @@ def insert_doc_embedding(
 
     except Exception as e:
         print("Error in inserting doc embedding:", e)
+        df.to_csv("document_embedding_arxiv.csv")
 
     return
 
