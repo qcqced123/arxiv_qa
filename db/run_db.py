@@ -26,7 +26,9 @@ def create_index(model_name: str, es: Elasticsearch) -> None:
         es.indices.create(index="document_embedding", mappings=indexMapping)
 
     except Exception as e:
-        print(f"Error Message: {e}")
+        print(f"Error Message: {e}", "\n\n")
+        print(f"current process will do work on the already exists index", end="\n")
+        print(f"if you want to delete the already exists index, stop current process and run the delete_index()")
 
     return
 
@@ -157,7 +159,7 @@ def search_candidates(
         "num_candidates": candidates
     }
 
-    return_data = ["paper_id", "doc_id", "title", "doc"]
+    return_data = ["paper_id", "doc_id", "title", "doc", "inputs"]
     candidate = es.knn_search(
         index="document_embedding",
         knn=query,
@@ -189,8 +191,6 @@ def insert_doc_embedding(
         df=df,
     )
     records = embed_df.to_dict(orient='records')
-    embed_df.to_csv("document_embedding_arxiv.csv", index=False)
-    
     try:
         for record in records:
             es.index(index="document_embedding", document=record, id=record['doc_id'])
@@ -199,6 +199,7 @@ def insert_doc_embedding(
 
     except Exception as e:
         print("Error in inserting doc embedding:", e)
+        embed_df.to_csv("document_embedding_arxiv.csv", index=False)
 
     return
 
