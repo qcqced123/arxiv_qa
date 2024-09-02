@@ -118,7 +118,7 @@ def encode_docs(
         pd.DataFrame, dataframe containing [paper id, doc id, title, doc, doc embedding]
     """
     pooling = MeanPooling()
-    df['DocEmbedding'] = np.array([encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist())])
+    df['DocEmbedding'] = [encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist())]
     return df
 
 
@@ -197,7 +197,7 @@ def insert_doc_embedding(
 
     except Exception as e:
         print("Error in inserting doc embedding:", e)
-        embed_df.to_csv("document_embedding_arxiv.csv", index=False)
+        # embed_df.to_csv("document_embedding_arxiv.csv", index=False)
 
     return
 
