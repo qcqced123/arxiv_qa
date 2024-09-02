@@ -182,15 +182,15 @@ def insert_doc_embedding(
         es: Elasticsearch, elastic search engine
         df: pd.DataFrame, dataframe containing [paper id, doc id, doc, doc embedding]
     """
-    df = encode_docs(
+    embed_df = encode_docs(
         cfg=cfg,
         encoder=encoder,
         tokenizer=tokenizer,
         df=df,
     )
-
-    df.to_csv("document_embedding_arxiv.csv", index=False)
-    records = df.to_dict(orient='records')
+    records = embed_df.to_dict(orient='records')
+    embed_df.to_csv("document_embedding_arxiv.csv", index=False)
+    
     try:
         for record in records:
             es.index(index="document_embedding", document=record, id=record['doc_id'])
@@ -199,6 +199,7 @@ def insert_doc_embedding(
 
     except Exception as e:
         print("Error in inserting doc embedding:", e)
+
 
     return
 
