@@ -118,7 +118,7 @@ def encode_docs(
         pd.DataFrame, dataframe containing [paper id, doc id, title, doc, doc embedding]
     """
     pooling = MeanPooling()
-    df['DocEmbedding'] = [encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist())]
+    df['DocEmbedding'] = [encode_text(cfg, encoder, pooling, tokenizer, text).cpu() for text in tqdm(df["inputs"].tolist())]
     return df
 
 
