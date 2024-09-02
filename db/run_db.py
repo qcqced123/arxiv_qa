@@ -182,7 +182,7 @@ def insert_doc_embedding(
         cfg=cfg,
         encoder=encoder,
         tokenizer=tokenizer,
-        df=df[0:1000],
+        df=df,
     )
     records = df.to_dict(orient='records')
     try:
