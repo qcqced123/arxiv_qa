@@ -153,7 +153,8 @@ def search_candidates(
         pooling=pooling,
         tokenizer=tokenizer,
         text=query
-    )
+    ).squeeze(0).cpu().numpy()
+
     query = {
         "field": "DocEmbedding",
         "query_vector": h,
