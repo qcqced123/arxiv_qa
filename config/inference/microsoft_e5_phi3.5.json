@@ -1,0 +1,37 @@
+{
+    "pipeline_setting": {
+        "pipeline_type": "insert",
+        "model_dtype": "torch.bfloat16"
+    },
+
+    "retriever_options": {
+        "retriever_name": "./saved/merged-qlora-e5-large-v2",
+        "retriever_max_len": 4096
+    },
+
+    "generator_options": {
+        "generator_name": "./saved/awq_phi3.5",
+        "tensor_parallel_size": 1,
+        "gpu_memory_utilization": 0.8,
+        "generator_max_len": 8192,
+        "q_method": "AWQ"
+    },
+
+    "sampling_options": {
+        "max_new_tokens": 256,
+        "temperature": 0.000000000000000000001,
+        "top_k": 50,
+        "top_p": 0.95,
+        "presence_penalty": 0.6,
+        "frequency_penalty": 0.6,
+        "repetition_penalty": 0.6,
+        "stop": "\n\n",
+        "skip_special_tokens": true
+    },
+
+    "common_settings": {
+        "seed": 42,
+        "n_gpu": 1,
+        "gpu_id": 0
+    }
+}

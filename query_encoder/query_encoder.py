@@ -10,7 +10,7 @@ def build_context(query: str, result: List[Dict]) -> str:
     """ function for building context text for passing the context input to the model
 
     Args:
-        query (str): input query for searchinsg for adding inputs of the generator
+        query (str): input query for searching for adding inputs of the generator
         result (List[Dict]): list of dictionary object for the search result
 
     Returns:
@@ -32,10 +32,10 @@ def query_encoder(
     cfg: CFG,
     retriever: nn.Module,
     tokenizer: AutoTokenizer,
-    es: Elasticsearch,
-    query: str = "Hello, Claude!",
-    top_k=5
-):
+    query: str = "",
+    top_k: int = 5,
+    es: Elasticsearch = None,
+) -> str:
     """ function for encoding input query and searching the nearest top-k documents from document embedding db
 
     Args:
@@ -54,4 +54,4 @@ def query_encoder(
         es=es,
         top_k=top_k
     )
-    return build_context(query, result)
+    return "\n".join(result)

@@ -19,7 +19,7 @@ from transformers import AutoTokenizer
 load_dotenv()
 
 
-def create_index(model_name: str, es: Elasticsearch) -> None:
+def create_index(es: Elasticsearch) -> None:
     """ function for creating index in elastic search engine with index mapping object in index_mapping.py
     """
     try:
@@ -132,7 +132,7 @@ def search_candidates(
     es: Elasticsearch,
     top_k: int = 5,
     candidates: int = 500
-) -> List[Dict]:
+) -> List[str]:
     """ function for semantic searching with input queries, finding best matched candidates in elastic search engine
 
     Args:
@@ -144,6 +144,8 @@ def search_candidates(
         top_k (int): number of top k candidates
         candidates (int): number of candidates
     """
+    # encode_text() is already wrapped by torch.no_grad(), meaning that do not require the backward gradient
+    # this is necessary context manager in inferencing context
     pooling = MeanPooling()
     h = encode_text(
         cfg=cfg,

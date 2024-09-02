@@ -65,7 +65,6 @@ class CFG:
     n_jobs = 5
     pipeline_type = "insert"
     work_flow_state = "resume"
-
     loop = "train_loop"
     name = "MetricLearningModel"
     trainer = "MetricLearningTuner"
@@ -75,6 +74,8 @@ class CFG:
 
     tokenizer = None
     model_name = "intfloat/e5-large-v2"
+    retriever_name = None
+    generator_name = None
     task = "MetricLearningModel"
     pooling = "MeanPooling"
     pow_value = 1
@@ -104,6 +105,9 @@ class CFG:
     num_reinit = 0
 
     max_len = 512
+    retriever_max_len = None
+    generator_max_len = None
+
     epochs = 10
     batch_size = 64
     val_batch_size = 64
@@ -162,6 +166,7 @@ class CFG:
 
     ##########################################################################################################
 
+    # param list for huggingface generate(), vllm generative backend
     inference_pipeline = None  # options: "tensorrt_llm", "vllm", "huggingface"
     max_new_tokens = 512
     strategy: str = "beam"
@@ -175,5 +180,14 @@ class CFG:
     no_repeat_ngram_size: int = None,
     do_sample: bool = False,
     use_cache: bool = True,
+
+    presence_penalty: float = None
+    frequency_penalty: float = None
+    stop: str = None
+    skip_special_tokens: bool = False
+    q_method: str = None
+
+    tensor_parallel_size: int = 1
+    gpu_memory_utilization: float = 0.8
 
     ##########################################################################################################

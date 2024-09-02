@@ -11,7 +11,7 @@ from db.run_db import create_index, insert_doc_embedding
 def document_encoder(cfg: CFG, retriever: nn.Module, tokenizer: AutoTokenizer, es: Elasticsearch, df: pd.DataFrame) -> None:
     """ function for creating, inserting doc embedding into elastic search engine """
     try:
-        create_index(cfg.model_name, es)
+        create_index(es)
 
     except Exception as e:
         print(f"Error: {e}")

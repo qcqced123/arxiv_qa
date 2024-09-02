@@ -17,16 +17,18 @@ from utils.util import sync_config
 from utils.helper import check_library, all_type_seed
 
 from db.helper import get_tokenizer
+from db.run_db import run_engine, get_encoder
 
 from configuration import CFG
 from prompt.prompt_maker import cut_context
 from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
 from dataset_class.preprocessing import save_pkl, jump_exist_paper, merge_partition_files
-from db.run_db import run_engine, create_index, get_encoder, insert_doc_embedding, search_candidates
 from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
 from generate_question.generate_question import get_necessary_module_for_generation_in_local, postprocess
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
+
+from inference.vllm_inference import initialize_llm, get_sampling_params
 
 os.environ["LRU_CACHE_CAPACITY"] = "4096"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -262,14 +264,28 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 
     # branch for calling pipeline that generates the best answer for the input query
     elif pipeline_type == "inference":
+        # make the dictionary for each module
+        # load the retriever, generator and transfer to GPU
+        retriever_dict = {
+            "retriever_tokenizer": get_tokenizer(cfg.retriever_name),
+            "retriever": get_encoder(cfg.retriever_name).to(cfg.device)
+        }
+
+        # insert vllm logic here
+        generator_dict = {
+            "generator_tokenizer": get_tokenizer(cfg.generator_name),
+            "generator": initialize_llm(model_name=cfg.generator_name, max_length=21153, max_seq_len_to_capture=cfg.generator_max_len, q_method=cfg.q_method),
+            "sampling_params": get_sampling_params(cfg)
+        }
         answers = inference_loop(
             cfg=cfg,
-            pipeline_type=pipeline_type,
-            model_config=model_config,
+            retriever_dict=retriever_dict,
+            generator_dict=generator_dict,
             es=es
         )
         for i, answer in enumerate(answers):
             print(f"{i+1}-th question's answer is: \n\n {answer}")
+
     return
 
 

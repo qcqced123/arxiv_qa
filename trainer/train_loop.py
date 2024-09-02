@@ -4,16 +4,18 @@ import torch
 import numpy as np
 import trainer.trainer as trainer
 
-from typing import List
 from tqdm.auto import tqdm
+from typing import List, Dict
 from elasticsearch import Elasticsearch
 
 from configuration import CFG
 from utils.helper import class2dict
 from trainer.trainer import TextGenerationTuner
-from trainer.trainer_utils import get_name, EarlyStopping
-from db.run_db import get_encoder
 from query_encoder.query_encoder import query_encoder
+from trainer.trainer_utils import get_name, EarlyStopping
+
+from db.run_db import get_encoder
+from inference.vllm_inference import build_prompt, do_inference
 
 g = torch.Generator()
 g.manual_seed(CFG.seed)
@@ -99,48 +101,67 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     wandb.finish()
 
 
-def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearch) -> List[str]:
-    # get user query
+def inference_loop(
+    cfg: CFG,
+    retriever_dict: Dict,
+    generator_dict: Dict,
+    es: Elasticsearch
+) -> List[str]:
+    """ inference function for making the answer to each input queries with elastic search, vllm backend
+
+    Args:
+        cfg (CFG): configuration module for inferencing
+        retriever_dict (Dict):
+        generator_dict (Dict):
+        es (Elasticsearch):
+
+    workflow:
+        1) get multiple-inputs from multiple-users
+        2) get candidates of each inputs from from document DB
+        3) make the input prompt, using the inputs queries and candidates
+            - build the input prompt by using chatting template in LLM models
+            - find the optimal input prompt shape
+        4) generate the answer from question, using the vllm backend
+    """
+    # get multiple-queries from multiple-users
     queries = [
         "What is the self-attention mechanism in transformer?",
         "What is the Retrieval Augmented Generation (RAG) model?",
     ]
-    retriever = get_encoder(cfg.retriever)
-    tuner = TextGenerationTuner(
-        cfg=cfg,
-        generator=g,
-        is_train=False,
-        es=es
+
+    # reference the retriever module
+    retriever = retriever_dict["retriever"]
+    retriever_tokenizer = retriever_dict["retriever_tokenizer"]
+
+    # retrieve the top-k documents from the elastic search engine
+    # concatenate the retriever's result (top-k candidates for each query from users)
+    candidates = [
+        query_encoder(cfg=cfg, retriever=retriever, tokenizer=retriever_tokenizer, query=query, top_k=5, es=es) for query in tqdm(queries)
+    ]
+
+    # make the input prompt for generating answer from the users queries
+    # do inference for users queries
+    generator = generator_dict["generator"]
+    generator_tokenizer = generator_dict["generator_tokenizer"]
+    sampling_params = generator_dict["sampling_params"]
+
+    prompts = build_prompt(
+        tokenizer=generator_tokenizer,
+        queries=queries,
+        candidates=candidates
     )
-    _, generator, *_ = tuner.model_setting()
 
-    answers = []  # retrieve the top-k documents from the elastic search engine
-    for query in queries:
-        prompt = query_encoder(
-            es=es,
-            retriever=retriever,
-            query=query,
-            top_k=10
+    size = len(prompts) // 4  # number of users
+    chunked = [prompts[i:i + size] for i in range(0, len(prompts), size)]
+
+    questions = []
+    for sub in tqdm(chunked):
+        outputs = do_inference(
+            llm=generator,
+            inputs=sub,
+            sampling_params=sampling_params
         )
+        questions.extend([output.outputs[0].text for output in outputs])
 
-        answer = tuner.inference(
-            prompt=prompt,
-            model=generator,
-            max_new_tokens=cfg.max_new_tokens,
-            max_length=cfg.max_len,
-            return_full_text=cfg.return_full_text,
-            strategy=cfg.strategy,
-            penalty_alpha=cfg.penalty_alpha,
-            num_beams=cfg.num_beams,
-            temperature=cfg.temperature,
-            top_k=cfg.top_k,
-            top_p=cfg.top_p,
-            repetition_penalty=cfg.repetition_penalty,
-            length_penalty=cfg.length_penalty,
-            do_sample=cfg.do_sample,
-            use_cache=cfg.use_cache
-        )
-        answers.append(answer)
-
-    return answers
+    return questions
 
