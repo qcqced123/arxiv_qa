@@ -186,7 +186,7 @@ def insert_doc_embedding(
         cfg=cfg,
         encoder=encoder,
         tokenizer=tokenizer,
-        df=df[0:3000],
+        df=df,
     )
 
     # df.to_csv("document_embedding_arxiv.csv", index=False)
