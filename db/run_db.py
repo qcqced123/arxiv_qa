@@ -1,3 +1,4 @@
+import numpy as np
 import pandas as pd
 
 import torch
@@ -113,7 +114,7 @@ def encode_docs(
         pd.DataFrame, dataframe containing [paper id, doc id, title, doc, doc embedding]
     """
     pooling = MeanPooling()
-    df['DocEmbedding'] = [encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist())]
+    df['DocEmbedding'] = np.array([encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist()[:1000])])
     return df
 
 
@@ -192,7 +193,7 @@ def insert_doc_embedding(
 
     except Exception as e:
         print("Error in inserting doc embedding:", e)
-        df.to_csv("document_embedding_arxiv.csv")
+        df.to_csv("document_embedding_arxiv.csv", index=False)
 
     return
 
@@ -210,6 +211,7 @@ def run_engine(url: str, auth: str, cert: str) -> Elasticsearch:
     """
     es = None
     # command = f"{os.environ.get('LINUX_RUNNER_PATH')}"
+
     try:
         # subprocess.run(command, shell=True, check=True)
         es = Elasticsearch(hosts=url, basic_auth=("elastic", auth), ca_certs=cert)
