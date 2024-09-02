@@ -100,10 +100,11 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 
 
 def inference_loop(cfg: CFG, pipeline_type: str, model_config: str, es: Elasticsearch) -> List[str]:
+    # get user query
     queries = [
         "What is the self-attention mechanism in transformer?",
         "What is the Retrieval Augmented Generation (RAG) model?",
-    ]  # ASAP, this line will be changed to user's input q
+    ]
     retriever = get_encoder(cfg.retriever)
     tuner = TextGenerationTuner(
         cfg=cfg,

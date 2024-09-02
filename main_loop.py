@@ -153,6 +153,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 
         7) run the text generation tuner for generating the answer for the input query
     """
+    # start process lifecycle
     # login_to_huggingface()
     config_path = f'config/{pipeline_type}/{model_config}.json'
     sync_config(cfg, OmegaConf.load(config_path))
@@ -249,13 +250,16 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             es=es,
             df=df
         )
-    # branch for calling pipeline that fine-tune the query encoder with metric learning, generator with clm
+
+    # branch for calling pipeline that fine-tune the query(~= document) encoder with metric learning
+    # query and document encoder will be used same module
     elif pipeline_type == "fine_tune":
         train_loop(
             cfg=cfg,
             pipeline_type=pipeline_type,
             model_config=model_config
         )
+
     # branch for calling pipeline that generates the best answer for the input query
     elif pipeline_type == "inference":
         answers = inference_loop(

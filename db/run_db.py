@@ -62,7 +62,13 @@ def get_encoder(model_name: str) -> nn.Module:
 
 # must insert pytorch no grad context manager
 @torch.no_grad()
-def encode_text(cfg, encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer, text: str) -> Tensor:
+def encode_text(
+    cfg,
+    encoder: nn.Module,
+    pooling: nn.Module,
+    tokenizer: AutoTokenizer,
+    text: str
+) -> Tensor:
     """ function for extracting the embedding of documents
 
     Args:
@@ -97,10 +103,10 @@ def encode_text(cfg, encoder: nn.Module, pooling: nn.Module, tokenizer: AutoToke
 
 
 def encode_docs(
-        cfg: CFG,
-        encoder: nn.Module,
-        tokenizer: AutoTokenizer,
-        df: pd.DataFrame
+    cfg: CFG,
+    encoder: nn.Module,
+    tokenizer: AutoTokenizer,
+    df: pd.DataFrame
 ) -> pd.DataFrame:
     """ function for encoding documents
 
@@ -119,13 +125,13 @@ def encode_docs(
 
 
 def search_candidates(
-        cfg: CFG,
-        encoder: nn.Module,
-        tokenizer: AutoTokenizer,
-        query: str,
-        es: Elasticsearch,
-        top_k: int = 5,
-        candidates: int = 500
+    cfg: CFG,
+    encoder: nn.Module,
+    tokenizer: AutoTokenizer,
+    query: str,
+    es: Elasticsearch,
+    top_k: int = 5,
+    candidates: int = 500
 ) -> List[Dict]:
     """ function for semantic searching with input queries, finding best matched candidates in elastic search engine
 
@@ -153,7 +159,7 @@ def search_candidates(
         "num_candidates": candidates
     }
 
-    return_data = ["paper_id", "doc_id", "title", "doc", "inputs"]
+    return_data = ["paper_id", "doc_id", "title", "doc"]
     candidate = es.knn_search(
         index="document_embedding",
         knn=query,
@@ -163,11 +169,11 @@ def search_candidates(
 
 
 def insert_doc_embedding(
-        cfg: CFG,
-        encoder: nn.Module,
-        tokenizer: AutoTokenizer,
-        es: Elasticsearch,
-        df: pd.DataFrame
+    cfg: CFG,
+    encoder: nn.Module,
+    tokenizer: AutoTokenizer,
+    es: Elasticsearch,
+    df: pd.DataFrame
 ) -> None:
     """ function for inserting doc embedding into elastic search engine
 
@@ -182,9 +188,13 @@ def insert_doc_embedding(
         cfg=cfg,
         encoder=encoder,
         tokenizer=tokenizer,
-        df=df,
+        df=df[0:3000],
     )
-    records = df.to_dict(orient='records')
+
+    df.to_csv("document_embedding_arxiv.csv", index=False)
+    test_df = df[["doc_id", "DocEmbedding"]]
+    # records = df.to_dict(orient='records')
+    records = test_df.to_dict(orient='records')
     try:
         for record in records:
             es.index(index="document_embedding", document=record, id=record['doc_id'])
@@ -193,7 +203,6 @@ def insert_doc_embedding(
 
     except Exception as e:
         print("Error in inserting doc embedding:", e)
-        df.to_csv("document_embedding_arxiv.csv", index=False)
 
     return
 
