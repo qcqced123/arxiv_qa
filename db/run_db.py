@@ -167,6 +167,7 @@ def search_candidates(
         knn=query,
         source=return_data
     )
+    print(candidatess)
     return candidate['hits']['hits']
 
 

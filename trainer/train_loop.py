@@ -127,6 +127,12 @@ def inference_loop(
     queries = [
         "What is the self-attention mechanism in transformer?",
         "What is the Retrieval Augmented Generation (RAG) model?",
+        "What is the self-attention mechanism in transformer?",
+        "What is the self-attention mechanism in transformer?",
+        "What is the self-attention mechanism in transformer?",
+        "What is the self-attention mechanism in transformer?",
+        "What is the self-attention mechanism in transformer?",
+        "What is the self-attention mechanism in transformer?",
     ]
 
     # reference the retriever module
