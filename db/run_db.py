@@ -24,7 +24,7 @@ def create_index(model_name: str, es: Elasticsearch) -> None:
     """
     try:
         es.indices.create(index="document_embedding", mappings=indexMapping)
-s
+
     except Exception as e:
         print(f"Error Message: {e}")
 
