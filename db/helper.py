@@ -62,10 +62,10 @@ def get_qlora_model(
     """ function for loading the pretrained model weight by applying the QLoRA Normal Float 4bit precision
 
     Args:
-        model_name (str):
-        config (AutoConfig):
-        bit_config (BitsAndBytesConfig):
-        device (str):
+        model_name (str): local hub path of pretrained model
+        config (AutoConfig): the model's corresponding hf's configuration
+        bit_config (BitsAndBytesConfig): the model's corresponding QLoRA bit configuration
+        device (str): set up your device, default value is "cuda:0"
         model_dtype (str, torch.Tensor, optional): set up your model's bit precision, default value is "auto"
                                                    "auto" means that set up the bit precision from AutoConfig setting
                                                    you can select torch.bfloat16, torch.float16, torch.float32 ...
@@ -83,25 +83,24 @@ def get_qlora_model(
 
 def dequantize_model(
     model: nn.Module,
-    dtype=torch.bfloat16,
+    dtype: torch.dtype = torch.bfloat16,
     device: str = "cuda:0"
 ):
-    """
-    'model': the peftmodel you loaded with qlora.
-    'tokenizer': the model's corresponding hf's tokenizer.
-    'to': directory to save the dequantized model
-    'dtype': dtype that the model was trained using, (our case, we must use fp16 for exporting to onnx)
-    'device': device to load the model to
+    """ function for de-quantizing the model weight from QLoRA Normal Float 4bit precision
+
+    Args:
+        model (nn.Module): the model with QLoRA weight
+        dtype (torch.dtype, optional): set up your model's bit precision, default value is torch.bfloat16
+        device (str, optional): set up your device, default value is "cuda:0"
     """
     cls = bnb.nn.Linear4bit
     with torch.no_grad():
         for name, module in model.named_modules():
             if isinstance(module, cls):
                 print(f"Dequantizing `{name}`...")
+
                 quant_state = copy.deepcopy(module.weight.quant_state)
-
                 quant_state.dtype = dtype
-
                 weights = dequantize_4bit(module.weight.data, quant_state=quant_state, quant_type="nf4").to(dtype)
 
                 new_module = torch.nn.Linear(module.in_features, module.out_features, bias=None, dtype=dtype)
@@ -128,9 +127,9 @@ def apply_lora(model: nn.Module, path: str, dtype: torch.dtype) -> PeftModel:
     """ function for loading the fine-tuned LoRA weight from local disk
 
     Args:
-        model (nn.Module):
-        path (str):
-        dtype (torch.dtype):
+        model (nn.Module): the de-quantized model with QLoRA weight
+        path (str): local path of fine-tuned LoRA weight
+        dtype (torch.dtype): set up your model's bit precision
     """
     return PeftModel.from_pretrained(
         model=model,
@@ -140,6 +139,11 @@ def apply_lora(model: nn.Module, path: str, dtype: torch.dtype) -> PeftModel:
 
 
 def merge_llm_with_lora(peft_model: PeftModel) -> PeftModel:
+    """ function for merging the de-quantized model with LoRA weight
+
+    Args:
+        peft_model (PeftModel): the de-quantized model with LoRA weight, not merged at this time
+    """
     output_model = peft_model.merge_and_unload()
     return output_model
 
@@ -149,9 +153,19 @@ def save_model(
     tokenizer: AutoTokenizer,
     config: AutoConfig,
     model_dtype: torch.dtype = torch.bfloat16,
-    to: str = ""
+    to: str = "",
+    quantization: bool = False
 ) -> None:
-    """ function for save your merged model into local disk """
+    """ function for save your merged model into local disk
+
+    Args:
+        model (nn.Module): de-quantized and merged with LoRA weight
+        tokenizer (AutoTokenizer): the model's corresponding hf's tokenizer
+        config (AutoConfig): the model's corresponding hf's configuration
+        model_dtype (torch.dtype, optional): set up your model's bit precision, default value is torch.bfloat16
+        to (str, optional): directory to save the dequantized model, default value is ""
+        quantization (bool, optional): set up the quantization flag, default value is False
+    """
     print(f"Saving dequantized model to {to}...")
 
     # Delete the model object if it exists
@@ -164,12 +178,15 @@ def save_model(
     model.save_pretrained(to)
 
     # save your model's configuration file
-    config.pop("quantization_config", None)
-    config.pop("pretraining_tp", None)
+    if quantization:
+        config.pop("quantization_config", None)
+        config.pop("pretraining_tp", None)
+
     config.torch_dtype = model_dtype
     config.save_pretrained(to)
 
     # save your model's tokenizer module
+    tokenizer.save_pretrained(to)
 
     return None
 
@@ -196,8 +213,7 @@ if __name__ == '__main__':
         dtype=model_dtype,
         device=device
     )
-
-    peft_model = apply_lora(model=dequantized_model, path=lora_path, dtype=model_dtype)
+    peft_model = apply_lora(model=model, path=lora_path, dtype=model_dtype)
     merged_model = merge_llm_with_lora(peft_model=peft_model)
 
     save_model(

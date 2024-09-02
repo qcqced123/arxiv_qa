@@ -1,15 +1,17 @@
+import torch.nn as nn
+from configuration import CFG
 from typing import List, Dict
 from elasticsearch import Elasticsearch
 from db.run_db import search_candidates
-from sentence_transformers import SentenceTransformer
+from transformers import AutoTokenizer
 
 
 def build_context(query: str, result: List[Dict]) -> str:
     """ function for building context text for passing the context input to the model
 
     Args:
-        query: str, input query for searching for adding inputs of the generator
-        result: List[Dict], list of dictionary object for the search result
+        query (str): input query for searchinsg for adding inputs of the generator
+        result (List[Dict]): list of dictionary object for the search result
 
     Returns:
         input text (context text) for the generator
@@ -27,24 +29,29 @@ def build_context(query: str, result: List[Dict]) -> str:
 
 
 def query_encoder(
+    cfg: CFG,
+    retriever: nn.Module,
+    tokenizer: AutoTokenizer,
     es: Elasticsearch,
-    retriever: SentenceTransformer,
     query: str = "Hello, Claude!",
     top_k=5
 ):
     """ function for encoding input query and searching the nearest top-k documents from document embedding db
 
     Args:
-        es: Elasticsearch, elastic search engine
-        retriever: SentenceTransformer, encoder for encoding text
-        query: str, input query for searching
-        top_k: int, number of top k candidates for searching
-
+        cfg (CFG): configuration module
+        retriever (nn.Module): embedding mapper of input texts
+        tokenizer (AutoTokenizer): module of tokenizing the inputs
+        es (Elasticsearch): elastic search engine
+        query (str): input query for searching
+        top_k (int): number of top k candidates
     """
     result = search_candidates(
-        query,
-        retriever,
-        es,
+        cfg=cfg,
+        encoder=retriever,
+        tokenizer=tokenizer,
+        query=query,
+        es=es,
         top_k=top_k
     )
     return build_context(query, result)

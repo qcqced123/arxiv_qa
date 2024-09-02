@@ -16,6 +16,8 @@ from transformers import logging as transformers_logging
 from utils.util import sync_config
 from utils.helper import check_library, all_type_seed
 
+from db.helper import get_tokenizer
+
 from configuration import CFG
 from prompt.prompt_maker import cut_context
 from trainer.train_loop import train_loop, inference_loop
@@ -241,8 +243,10 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         tokenizer = get_tokenizer(cfg.model_name)
         df = pd.read_csv('dataset_class/datafolder/arxiv_qa/arxiv_question_document_pair.csv')
         document_encoder(
-            es=es,
+            cfg=cfg,
             retriever=retriever,
+            tokenizer=tokenizer,
+            es=es,
             df=df
         )
     # branch for calling pipeline that fine-tune the query encoder with metric learning, generator with clm

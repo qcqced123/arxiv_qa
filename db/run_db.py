@@ -4,7 +4,9 @@ import torch
 import torch.nn as nn
 
 from torch import Tensor
+from tqdm.auto import tqdm
 from typing import List, Dict
+from configuration import CFG
 from dotenv import load_dotenv
 from elasticsearch import Elasticsearch
 from db.index_mapping import indexMapping
@@ -54,11 +56,12 @@ def get_encoder(model_name: str) -> nn.Module:
     )
     return model
 
-
-def encode_text(encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer, text: str) -> Tensor:
+@torch.no_grad()
+def encode_text(cfg, encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer, text: str) -> Tensor:
     """ function for extracting the embedding of documents
 
     Args:
+        cfg: dict, configuration module
         encoder (nn.Module): embedding mapper of input texts
         pooling (nn.Module): module of pooling encoder's output
         tokenizer (AutoTokenizer): module of tokenizing the inputs
@@ -68,7 +71,15 @@ def encode_text(encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer
         embedding tensor of input text
     """
     # tokenize the input text for embedding model
-    inputs = tokenizer(text, return_tensors="pt")
+    inputs = tokenizer.encode_plus(
+        text,
+        max_length=cfg.max_len,
+        truncation=True,
+        return_tensors="pt"
+    )
+
+    for k,v in inputs.items():
+        inputs[k] = v.to(cfg.device)
 
     # extract the input text's embedding tensor
     h = encoder(**inputs)
@@ -80,34 +91,56 @@ def encode_text(encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer
     return embed
 
 
-def encode_docs(encoder: nn.Module, tokenizer: AutoTokenizer, df: pd.DataFrame) -> pd.DataFrame:
+def encode_docs(
+        cfg: CFG,
+        encoder: nn.Module,
+        tokenizer: AutoTokenizer,
+        df: pd.DataFrame
+) -> pd.DataFrame:
     """ function for encoding documents
 
     Args:
-        encoder:
-        tokenizer (AutoTokenizer):
+        cfg (CFG): configuration module
+        encoder (nn.Module): embedding mapper of input texts
+        tokenizer (AutoTokenizer): module of tokenizing the inputs
         df: pd.DataFrame, dataframe containing [paper_id, doc_id, doc, doc embedding]
 
     return:
         pd.DataFrame, dataframe containing [paper id, doc id, title, doc, doc embedding]
     """
     pooling = MeanPooling()
-    df['DocEmbedding'] = df['doc'].apply(lambda x: encode_text(encoder, pooling, tokenizer, x))
+    df['DocEmbedding'] = [encode_text(cfg, encoder, pooling, tokenizer, text) for text in tqdm(df["inputs"].tolist())]
     return df
 
 
-def search_candidates(query: str, encoder, es: Elasticsearch, top_k: int = 5, candidates: int = 500) -> List[Dict]:
+def search_candidates(
+        cfg: CFG,
+        encoder: nn.Module,
+        tokenizer: AutoTokenizer,
+        query: str,
+        es: Elasticsearch,
+        top_k: int = 5,
+        candidates: int = 500
+) -> List[Dict]:
     """ function for semantic searching with input queries, finding best matched candidates in elastic search engine
 
     Args:
-        query: str, input query for searching
-        encoder: SentenceTransformer, encoder for encoding text
-        es: Elasticsearch, elastic search engine
-        top_k: int, number of top k candidates for searching
-        candidates: int, number of candidates for searching
+        cfg (CFG): configuration module
+        encoder (nn.Module): embedding mapper of input texts
+        tokenizer (AutoTokenizer): module of tokenizing the inputs
+        query (str): input query for searching
+        es (Elasticsearch): elastic search engine
+        top_k (int): number of top k candidates
+        candidates (int): number of candidates
     """
-
-    h = encode_text(query, encoder)
+    pooling = MeanPooling()
+    h = encode_text(
+        cfg=cfg,
+        encoder=encoder,
+        pooling=pooling,
+        tokenizer=tokenizer,
+        text=query
+    )
     query = {
         "field": "DocEmbedding",
         "query_vector": h,
@@ -115,7 +148,7 @@ def search_candidates(query: str, encoder, es: Elasticsearch, top_k: int = 5, ca
         "num_candidates": candidates
     }
 
-    return_data = ["paper_id", "doc_id", "title", "doc"]
+    return_data = ["paper_id", "doc_id", "title", "doc", "inputs"]
     candidate = es.knn_search(
         index="document_embedding",
         knn=query,
@@ -124,16 +157,24 @@ def search_candidates(query: str, encoder, es: Elasticsearch, top_k: int = 5, ca
     return candidate['hits']['hits']
 
 
-def insert_doc_embedding(encoder: nn.Module, tokenizer: AutoTokenizer, es: Elasticsearch, df: pd.DataFrame) -> None:
+def insert_doc_embedding(
+        cfg: CFG,
+        encoder: nn.Module,
+        tokenizer: AutoTokenizer,
+        es: Elasticsearch,
+        df: pd.DataFrame
+) -> None:
     """ function for inserting doc embedding into elastic search engine
 
     Args:
+        cfg (CFG): configuration module
         encoder (nn.Module):
         tokenizer (AutoTokenizer):
         es: Elasticsearch, elastic search engine
         df: pd.DataFrame, dataframe containing [paper id, doc id, doc, doc embedding]
     """
     df = encode_docs(
+        cfg=cfg,
         encoder=encoder,
         tokenizer=tokenizer,
         df=df,

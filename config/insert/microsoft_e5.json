@@ -1,88 +1,18 @@
 {
     "pipeline_setting": {
-        "pipeline_type": "fine_tune",
-        "name": "ArxivMetricLearning",
-        "trainer": "MetricLearningTuner",
-        "loop": "train_loop",
-        "task": "MetricLearningModel",
-        "dataset": "QuestionDocumentMatchingDataset",
-        "model_name": "saved/e5-large-v2",
-        "tokenizer_name": "saved/e5-large-v2",
-        "pooling": "SubSequenceGEMPooling",
-        "pow_value": 1,
-        "checkpoint_dir": "./saved/"
+        "pipeline_type": "insert",
+        "model_name": "./saved/merged-qlora-e5-large-v2",
+        "tokenizer_name": "./saved/merged-qlora-e5-large-v2"
     },
 
-    "fine_tune_options": {
+    "model_options": {
         "max_len": 4096,
-        "layer_norm_eps": 1e-7,
-        "attention_probs_dropout_prob": 0.1,
-        "hidden_dropout_prob": 0.1,
-        "init_weight": "kaiming_normal",
-        "initializer_range": 0.02,
-        "model_dtype": "torch.bfloat16",
-        "quantization": "QLoRA",
-        "lora": true
-    },
-
-    "data_settings": {
-        "batching": "random",
-        "split_ratio": 0.1,
-        "epochs": 5,
-        "batch_size": 128,
-        "val_batch_size": 128,
-        "val_check": 1000
-    },
-
-    "optimizer_options": {
-        "optimizer": "AdamW",
-        "llrd": false,
-        "lr": 2e-4,
-        "weight_decay": 1e-2,
-        "adam_epsilon": 1e-6,
-        "use_bertadam": false,
-        "betas": [0.9, 0.999]
-    },
-
-    "scheduler_options": {
-        "scheduler": "cosine_annealing",
-        "batch_scheduler": true,
-        "num_cycles": 1,
-        "warmup_ratio": 0.1
-    },
-
-    "gradient_settings": {
-        "amp_scaler": false,
-        "gradient_checkpoint": true,
-        "clipping_grad": true,
-        "n_gradient_accumulation_steps": 1,
-        "max_grad_norm": 1
-    },
-
-    "loss_options": {
-        "loss_fn": "BatchInfoNCELoss",
-        "val_loss_fn": "BatchInfoNCELoss",
-        "reduction": "mean"
-    },
-
-    "metrics_options": {
-        "metrics": ["top_k_acc"]
+        "model_dtype": "torch.bfloat16"
     },
 
     "common_settings": {
-        "wandb": true,
         "seed": 42,
         "n_gpu": 1,
-        "gpu_id": 0,
-        "num_workers": 4
-    },
-
-    "model_utils": {
-        "stop_mode": "min",
-        "patience": 2,
-        "freeze": false,
-        "num_freeze": 0,
-        "reinit": false,
-        "num_reinit": 0
+        "gpu_id": 0
     }
 }
