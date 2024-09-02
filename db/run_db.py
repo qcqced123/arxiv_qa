@@ -189,10 +189,8 @@ def insert_doc_embedding(
         df=df,
     )
 
-    # df.to_csv("document_embedding_arxiv.csv", index=False)
-    test_df = df[["doc_id", "DocEmbedding"]]
-    # records = df.to_dict(orient='records')
-    records = test_df.to_dict(orient='records')
+    df.to_csv("document_embedding_arxiv.csv", index=False)
+    records = df.to_dict(orient='records')
     try:
         for record in records:
             es.index(index="document_embedding", document=record, id=record['doc_id'])
