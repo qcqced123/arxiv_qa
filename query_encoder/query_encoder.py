@@ -24,7 +24,7 @@ def query_encoder(
         query (str): input query for searching
         top_k (int): number of top k candidates
     """
-    result = search_candidates(
+    results = search_candidates(
         cfg=cfg,
         encoder=retriever,
         tokenizer=tokenizer,
@@ -32,5 +32,5 @@ def query_encoder(
         es=es,
         top_k=top_k
     )
-    print(result, end="\n\n")
-    return "\n".join(result)
+    output = [result["_source"]["inputs"] for result in results]
+    return "\n".join(output)
