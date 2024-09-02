@@ -114,7 +114,7 @@ def encode_docs(
         pd.DataFrame, dataframe containing [paper id, doc id, title, doc, doc embedding]
     """
     pooling = MeanPooling()
-    df['DocEmbedding'] = np.array([encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist()[:1000])])
+    df['DocEmbedding'] = np.array([encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist())])
     return df
 
 
@@ -182,7 +182,7 @@ def insert_doc_embedding(
         cfg=cfg,
         encoder=encoder,
         tokenizer=tokenizer,
-        df=df,
+        df=df[0:1000],
     )
     records = df.to_dict(orient='records')
     try:
