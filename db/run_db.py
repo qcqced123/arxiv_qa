@@ -56,6 +56,8 @@ def get_encoder(model_name: str) -> nn.Module:
     )
     return model
 
+
+# must insert pytorch no grad context manager
 @torch.no_grad()
 def encode_text(cfg, encoder: nn.Module, pooling: nn.Module, tokenizer: AutoTokenizer, text: str) -> Tensor:
     """ function for extracting the embedding of documents
@@ -78,7 +80,7 @@ def encode_text(cfg, encoder: nn.Module, pooling: nn.Module, tokenizer: AutoToke
         return_tensors="pt"
     )
 
-    for k,v in inputs.items():
+    for k, v in inputs.items():
         inputs[k] = v.to(cfg.device)
 
     # extract the input text's embedding tensor
@@ -109,7 +111,7 @@ def encode_docs(
         pd.DataFrame, dataframe containing [paper id, doc id, title, doc, doc embedding]
     """
     pooling = MeanPooling()
-    df['DocEmbedding'] = [encode_text(cfg, encoder, pooling, tokenizer, text) for text in tqdm(df["inputs"].tolist())]
+    df['DocEmbedding'] = [encode_text(cfg, encoder, pooling, tokenizer, text).cpu().numpy() for text in tqdm(df["inputs"].tolist())]
     return df
 
 
