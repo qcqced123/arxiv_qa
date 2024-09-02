@@ -189,6 +189,8 @@ def insert_doc_embedding(
         df=df,
     )
     records = embed_df.to_dict(orient='records')
+    embed_df.to_csv("document_embedding_arxiv.csv", index=False)
+    
     try:
         for record in records:
             es.index(index="document_embedding", document=record, id=record['doc_id'])
@@ -197,7 +199,6 @@ def insert_doc_embedding(
 
     except Exception as e:
         print("Error in inserting doc embedding:", e)
-        # embed_df.to_csv("document_embedding_arxiv.csv", index=False)
 
     return
 
