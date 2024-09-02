@@ -21,6 +21,6 @@ def document_encoder(cfg: CFG, retriever: nn.Module, tokenizer: AutoTokenizer, e
         encoder=retriever,
         tokenizer=tokenizer,
         es=es,
-        df=df[0:3000],
+        df=df,
     )
     return
