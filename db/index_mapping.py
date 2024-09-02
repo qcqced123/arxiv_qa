@@ -15,6 +15,9 @@ indexMapping = {
         "doc": {
             "type": "text"
         },
+        "inputs": {
+            "type": "text"
+        },
         "DocEmbedding": {
             "type": "dense_vector",
             "dims": 1024,
