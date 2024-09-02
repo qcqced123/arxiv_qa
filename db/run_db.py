@@ -191,7 +191,7 @@ def insert_doc_embedding(
         df=df[0:3000],
     )
 
-    df.to_csv("document_embedding_arxiv.csv", index=False)
+    # df.to_csv("document_embedding_arxiv.csv", index=False)
     test_df = df[["doc_id", "DocEmbedding"]]
     # records = df.to_dict(orient='records')
     records = test_df.to_dict(orient='records')
