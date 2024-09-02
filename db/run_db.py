@@ -18,10 +18,12 @@ from transformers import AutoTokenizer
 load_dotenv()
 
 
-def create_index(es: Elasticsearch) -> None:
+def create_index(model_name: str, es: Elasticsearch) -> None:
     """ function for creating index in elastic search engine with index mapping object in index_mapping.py
     """
     try:
+        config = get_config(model_name)
+        indexMapping["DocEmbedding"].dims = config.hidden_size
         es.indices.create(index="document_embedding", mappings=indexMapping)
 
     except Exception as e:
