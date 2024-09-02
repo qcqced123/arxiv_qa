@@ -23,9 +23,8 @@ def create_index(model_name: str, es: Elasticsearch) -> None:
     """ function for creating index in elastic search engine with index mapping object in index_mapping.py
     """
     try:
-        config = get_config(model_name)
         es.indices.create(index="document_embedding", mappings=indexMapping)
-
+s
     except Exception as e:
         print(f"Error Message: {e}")
 
