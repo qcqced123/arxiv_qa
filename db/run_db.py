@@ -168,7 +168,7 @@ def search_candidates(
         knn=query,
         source=return_data
     )
-    return candidate['hits']['hits']
+    return candidate["hits"]["hits"]["_source"]["inputs"]
 
 
 def insert_doc_embedding(

@@ -31,5 +31,5 @@ def query_encoder(
         query=query,
         es=es,
         top_k=top_k
-    )["inputs"]
+    )
     return "\n".join(result)
