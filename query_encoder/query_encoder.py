@@ -32,4 +32,5 @@ def query_encoder(
         es=es,
         top_k=top_k
     )
+    print(result, end="\n\n")
     return "\n".join(result)

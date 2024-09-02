@@ -162,13 +162,13 @@ def search_candidates(
         "num_candidates": candidates
     }
 
-    return_data = ["paper_id", "doc_id", "title", "doc", "inputs"]
+    return_data = ["inputs"]
     candidate = es.knn_search(
         index="document_embedding",
         knn=query,
         source=return_data
     )
-    return candidate["hits"]["hits"]["_source"]["inputs"]
+    return candidate["hits"]["hits"]
 
 
 def insert_doc_embedding(
