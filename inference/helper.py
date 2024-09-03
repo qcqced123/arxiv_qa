@@ -34,8 +34,8 @@ def get_prompt_for_answering_question(query: str, candidates: str) -> str:
     Returns:
         prompt: str, the prompt for the question generation task
     """
-    prompt = f"""Role Description: You are an answering assistant. 
-Your task is to generate detailed, accurate, and concise answers based on the provided contexts. 
+    prompt = f"""Role Description: You are an answering assistant.
+Your task is to generate detailed, accurate, and concise answers based on the provided contexts.
 Use the examples below as a guide for answering questions, ensuring that your responses directly address the query while incorporating key information from the context.
 
 Answer Structure: Begin with a clear explanation of the concept or question.
@@ -95,7 +95,7 @@ PagedAttention partitions the KV cache of each sequence into blocks, with each b
 During attention computation, these blocks are efficiently identified and fetched as needed, rather than relying on a contiguous memory structure.
 This allows for more flexible and scalable memory usage.
 
-Template for Answering: Detailed answer based on the context, ensuring all parts of the query are addressed. 
+Template for Answering: Detailed answer based on the context, ensuring all parts of the query are addressed.
 Summarize the key points and provide clarity on the topic, as shown in the examples
 
 Question 4: {query}
@@ -104,8 +104,6 @@ Context 4: {candidates}
 
 Answer 4: """
     return prompt
-
-
 
 
 def apply_template(tokenizer: AutoTokenizer, prompt: str) -> str:

@@ -10,11 +10,8 @@ from elasticsearch import Elasticsearch
 
 from configuration import CFG
 from utils.helper import class2dict
-from trainer.trainer import TextGenerationTuner
 from query_encoder.query_encoder import query_encoder
 from trainer.trainer_utils import get_name, EarlyStopping
-
-from db.run_db import get_encoder
 from inference.vllm_inference import build_prompt, do_inference
 
 g = torch.Generator()
