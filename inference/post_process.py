@@ -3,10 +3,20 @@
 
 
 def is_valid_question(text: str) -> bool:
+    """ bool type function for validating current generative result
+    Args:
+        text (str): text for checking
+    """
     return text.endswith("?") and not text.startswith("Question") and not text.startswith("Context")
 
 
 def slice_full_questions(output: str) -> str:
+    """ post-process function for generating questions from chunked Arxiv paper
+
+    Args:
+        output (str):
+
+    """
     return " ".join([sub for sub in output.split("\n") if is_valid_question(sub)])
 
 

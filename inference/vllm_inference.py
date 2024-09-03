@@ -37,7 +37,7 @@ def initialize_llm(cfg: CFG) -> LLM:
     LLM Module's Param:
         model: The name or path of a HuggingFace Transformers model.
         tokenizer: The name or path of a HuggingFace Transformers tokenizer.
-        tokenizer_mode: The tokenizer mode. "auto" will use the fast tokenizer
+        tokenizer_mode: The tokenizer mode.  "auto" will use the fast tokenizer
                         if available, and "slow" will always use the slow tokenizer.
 
         skip_tokenizer_init: If true, skip initialization of tokenizer and detokenizer.
