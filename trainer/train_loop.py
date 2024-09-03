@@ -127,12 +127,12 @@ def inference_loop(
     queries = [
         "What is the self-attention mechanism in transformer?",
         "What is the Retrieval Augmented Generation (RAG) model?",
-        "What is the self-attention mechanism in transformer?",
-        "What is the self-attention mechanism in transformer?",
-        "What is the self-attention mechanism in transformer?",
-        "What is the self-attention mechanism in transformer?",
-        "What is the self-attention mechanism in transformer?",
-        "What is the self-attention mechanism in transformer?",
+        "Why the self-attention mechanism use the Q, K, V matrix?",
+        "How to train the transformer model?",
+        "How to implement the block-sparse attention from BigBird paper?",
+        "Tell me about the more detail of self-attention mechanism in transformer",
+        "Why the transformer model add the two different matrix, word embedding and positional encoding?",
+        "What is the main concept of Activation Aware Quantization?",
     ]
 
     # reference the retriever module
