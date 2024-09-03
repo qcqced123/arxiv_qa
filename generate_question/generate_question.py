@@ -12,8 +12,6 @@ from typing import List, Dict, Any
 from elasticsearch import Elasticsearch
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-from trainer.trainer import TextGenerationTuner
-
 load_dotenv()
 
 
@@ -69,30 +67,6 @@ def postprocess(output: str) -> str:
             continue
 
     return ''.join(question)
-
-
-def get_necessary_module_for_generation_in_local(cfg: CFG, es: Elasticsearch, g: torch.Generator) -> Dict[str, Any]:
-    """ function for getting necessary module for the project
-    Args:
-        cfg (CFG): configuration object for the project
-        es (Elasticsearch): elasticsearch object for the project
-        g (torch.Generator): torch.Generator object for the project
-
-    Returns:
-        Dict[str, Any]: dictionary object for the necessary module
-    """
-    tuner = TextGenerationTuner(
-        cfg=cfg,
-        generator=g,
-        is_train=False,
-        es=es
-    )
-    _, generator, *_ = tuner.model_setting()
-    return {
-        'tokenizer': cfg.tokenizer,
-        'tuner': tuner,
-        'generator': generator
-    }
 
 
 def google_gemini_api(title: str, context: str, foundation_model: str = 'gemini-pro', temperature: float = 0) -> str:
