@@ -2,6 +2,7 @@ import gc
 import wandb
 import torch
 import numpy as np
+import pandas as pd
 import trainer.trainer as trainer
 
 from tqdm.auto import tqdm
@@ -12,19 +13,20 @@ from configuration import CFG
 from utils.helper import class2dict
 from query_encoder.query_encoder import query_encoder
 from trainer.trainer_utils import get_name, EarlyStopping
-from inference.vllm_inference import build_prompt, do_inference
+
+from inference.helper import apply_normalizer
+from inference.post_process import slice_full_questions
+from inference.vllm_inference import build_generating_prompt, build_answering_prompt, do_inference
 
 g = torch.Generator()
 g.manual_seed(CFG.seed)
 
 
 def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
-    """ Base trainer loop function
-    1) Initialize Trainer Object
-    2) Make Early Stopping Object
-    3) Initialize Metric Checker
-    4) Initialize Train, Validation Input Object
-    5) Check if this insert loop need to finish, by Early Stopping Object
+    """ baseline trainer loop function, in this project this function will be used to fine-tune by metric-learning method
+
+    Args:
+
     """
 
     sub_name = f"{cfg.model_name}"
@@ -98,6 +100,57 @@ def train_loop(cfg: CFG, pipeline_type: str, model_config: str) -> None:
     wandb.finish()
 
 
+def generate_loop(
+    cfg: CFG,
+    flow: str = "init",
+    df: pd.DataFrame = None,
+    generator_dict: Dict = None,
+) -> None:
+    """ generate function for making the question to each input context, originally from Arxiv paper pdf
+    this function use the vllm generative backend for more faster inferencing than pure huggingface generative API
+
+    Args:
+        cfg (CFG): configuration module for inferencing
+        flow (str):
+        df (pd.DataFrame):
+        generator_dict (Dict):
+
+    Workflow:
+
+    """
+    # reference the necessary module for generating questions
+    generator = generator_dict["generator"]
+    sampling_params = generator_dict["sampling_params"]
+    generator_tokenizer = generator_dict["generator_tokenizer"]
+    text_normalizer = generator_dict["text_normalizer"]
+
+    # clean and normalize the chunked text document from arxiv paper pdf
+    # apply generative prompt template to cleansing and normalizing output
+    document_list = [apply_normalizer(text_normalizer, document) for document in tqdm(df["doc"].tolist())] if flow == "init" else df["doc"].tolist()
+    prompts = build_generating_prompt(
+        tokenizer=generator_tokenizer,
+        text_list=document_list
+    )
+
+    # chunk the total dataset instance for In-flight batching inference
+    size = len(prompts) // 200
+    chunked = [prompts[i:i + size] for i in range(0, len(prompts), size)]
+
+    questions = []
+    for sub in tqdm(chunked):
+        outputs = do_inference(
+            llm=generator,
+            inputs=sub,
+            sampling_params=sampling_params
+        )
+        questions.extend([slice_full_questions(output.outputs[0].text) for output in outputs])
+
+    df["question"] = questions
+    df.to_csv("output_arxiv_test.csv", index=False)
+
+    return
+
+
 def inference_loop(
     cfg: CFG,
     retriever_dict: Dict,
@@ -148,7 +201,7 @@ def inference_loop(
     generator_tokenizer = generator_dict["generator_tokenizer"]
     sampling_params = generator_dict["sampling_params"]
 
-    prompts = build_prompt(
+    prompts = build_answering_prompt(
         tokenizer=generator_tokenizer,
         queries=queries,
         candidates=candidates

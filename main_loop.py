@@ -20,14 +20,12 @@ from db.helper import get_tokenizer
 from db.run_db import run_engine, get_encoder
 
 from configuration import CFG
-from prompt.prompt_maker import cut_context
-from trainer.train_loop import train_loop, inference_loop
 from document_encoder.document_encoder import document_encoder
-from dataset_class.preprocessing import save_pkl, jump_exist_paper, merge_partition_files
-from prompt.prompt_maker import get_prompt_for_question_generation, get_prompt_for_retrieval_augmented_generation
-from generate_question.generate_question import get_necessary_module_for_generation_in_local, postprocess
+from trainer.train_loop import train_loop, generate_loop, inference_loop
+from dataset_class.preprocessing import jump_exist_paper, merge_partition_files
 from dataset_class.text_chunk import chunk_by_length, chunk_by_recursive_search, cut_pdf_to_sub_module_with_text
 
+from inference.helper import init_normalizer
 from inference.vllm_inference import initialize_llm, get_sampling_params
 
 os.environ["LRU_CACHE_CAPACITY"] = "4096"
@@ -169,6 +167,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         # branch of getting elements from pdf files and making the document dataframe
         # if configuration var state(cfg.work_flow_state) is "init", then make the document dataframe
         # if configuration var state(cfg.work_flow_state) is "resume", then load the document dataframe
+        df = None
         if cfg.work_flow_state == "init":
             path_list = os.listdir(base_path)
 
@@ -188,56 +187,21 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
         elif cfg.work_flow_state == "resume":
             df = pd.read_csv('dataset_class/datafolder/arxiv_qa/total/sampling_metric_learning_total_paper_chunk.csv')
 
-        # branch of question generation
-        # you can choose any other generator llm in huggingface model hub (currently google gemini api does not support)
-        # you can select the question generator by setting the cfg.question_generator
-        # default setting is microsoft/Phi-3-mini-128k-instruct
-        # initialize & get the inference function, option for tensorrt_llm, vllm, huggingface
-        # you can select those of three platform in configuration json file (param name is "inference_pipeline")
-        questions = []
-        modules = get_necessary_module_for_generation_in_local(cfg, es, g)
-        tokenizer, tuner, generator = modules['tokenizer'], modules['tuner'], modules['generator']
-
-        inference_fn = None
-        if cfg.inference_pipeline == "tensorrt_llm":
-            inference_fn = tuner.trt_llm_inference
-
-        elif cfg.inference_pipeline == "vllm":
-            inference_fn = tuner.vllm_inference
-
-        else:
-            inference_fn = tuner.inference
-
-        for i, row in tqdm(df.iterrows(), total=len(df)):
-            context = cut_context(
-                cfg=cfg,
-                context=row['doc']
-            )
-            prompt = get_prompt_for_question_generation(context=context)
-            questions.append(
-                inference_fn(
-                    model=generator,
-                    max_new_tokens=cfg.max_new_tokens,
-                    max_length=cfg.max_len,
-                    prompt=prompt,
-                    penalty_alpha=cfg.penalty_alpha,
-                    num_beams=cfg.num_beams,
-                    temperature=cfg.temperature,
-                    top_k=cfg.top_k,
-                    top_p=cfg.top_p,
-                    repetition_penalty=cfg.repetition_penalty,
-                    length_penalty=cfg.length_penalty,
-                    do_sample=cfg.do_sample,
-                    use_cache=cfg.use_cache
-                )
-            )
-        # branch merge point of question generation
-        # save the question data object with pickle for backup if current logic will be failed
-        save_pkl(questions, 'dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db')
-        df['question'] = [postprocess(question) for question in questions]
-
-        output_path = f"dataset_class/datafolder/arxiv_qa/total/test_generate_question_document_db.csv"
-        df.to_csv(output_path, index=False)
+        # branch of question generation pipeline
+        # current generative API is vllm backend
+        # default setting for foundation model is microsoft/Phi-3.5-mini-instruct with AWQ (4bit quantization)
+        generator_dict = {
+            "generator_tokenizer": get_tokenizer(cfg.generator_name),
+            "generator": initialize_llm(cfg=cfg),
+            "sampling_params": get_sampling_params(cfg),
+            "text_normalizer": init_normalizer(mode="lower_cased", language="en")
+        }
+        generate_loop(
+            cfg=cfg,
+            flow=cfg.work_flow_state,
+            df=df,
+            generator_dict=generator_dict
+        )
 
     # branch for calling pipeline that inserts the document embedding into the elastic search engine
     # you can select the document encoder model in configuration json file
@@ -270,11 +234,9 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
             "retriever_tokenizer": get_tokenizer(cfg.retriever_name),
             "retriever": get_encoder(cfg.retriever_name).to(cfg.device)
         }
-
-        # insert vllm logic here
         generator_dict = {
             "generator_tokenizer": get_tokenizer(cfg.generator_name),
-            "generator": initialize_llm(model_name=cfg.generator_name, max_length=21153, max_seq_len_to_capture=cfg.generator_max_len, q_method=cfg.q_method),
+            "generator": initialize_llm(cfg=cfg),
             "sampling_params": get_sampling_params(cfg)
         }
         answers = inference_loop(

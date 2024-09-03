@@ -1,48 +1,33 @@
 {
     "pipeline_setting": {
         "pipeline_type": "make",
-        "work_flow_state": "init",
-        "n_jobs": 5,
-        "resume": false,
-        "task": "CasualLanguageModel"
+        "work_flow_state": "init"
     },
 
-    "generate_options": {
-        "inference_pipeline": "vllm",
-        "model_name": "microsoft/Phi-3.5-mini-instruct",
-        "tokenizer_name": "microsoft/Phi-3.5-mini-instruct",
-        "max_len": 6144,
-        "max_new_tokens": 256,
-        "strategy": "beam",
-        "num_beams": 2,
-        "temperature": 0.000000000000000000000000000001,
+    "generator_options": {
+        "generator_name": "./saved/awq_phi3.5",
+        "tensor_parallel_size": 1,
+        "gpu_memory_utilization": 0.8,
+        "generator_max_len": 8192,
+        "q_method": "AWQ"
+    },
+
+    "sampling_options": {
+        "max_new_tokens": 64,
+        "temperature": 0.000000000000000000001,
         "top_k": 50,
-        "top_p": 0.9,
-        "penalty_alpha": 0.6,
-        "repetition_penalty": 2.0,
-        "length_penalty": 2.0,
-        "no_repeat_ngram_size": 2,
-        "do_sample": false,
-        "use_cache": true,
-        "use_pretrained": true,
-        "generate_mode": true,
-        "hub": "huggingface",
-        "quantization": true,
-        "lora": false,
-        "qlora": false,
-        "prompt_tuning": false,
-        "layer_norm_eps": 1e-7,
-        "attention_probs_dropout_prob": 0.1,
-        "hidden_dropout_prob": 0.1,
-        "init_weight": "kaiming_normal",
-        "initializer_range": 0.02
+        "top_p": 0.90,
+        "presence_penalty": 0.6,
+        "frequency_penalty": 0.6,
+        "repetition_penalty": 0.6,
+        "stop": "\n\n",
+        "skip_special_tokens": true
     },
 
     "common_settings": {
-        "wandb": true,
         "seed": 42,
         "n_gpu": 1,
-        "gpu_id": 0,
-        "num_workers": 4
+        "gpu_id": 0
     }
+
 }

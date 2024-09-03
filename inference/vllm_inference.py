@@ -2,10 +2,23 @@ from typing import List
 from configuration import CFG
 from vllm import LLM, SamplingParams
 from transformers import AutoTokenizer
-from inference.helper import cut_context, get_prompt_for_answering_question, apply_template
+from inference.helper import cut_context, apply_template
+from inference.helper import get_prompt_for_question_generation, get_prompt_for_answering_question
 
 
-def build_prompt(tokenizer: AutoTokenizer, queries: List[str], candidates: List[str]) -> List[str]:
+def build_generating_prompt(tokenizer: AutoTokenizer, text_list: List[str]) -> List[str]:
+    """ build input prompt for generating the question from chunked document
+
+    Args:
+        tokenizer (AutoTokenizer):
+        text_list (List[str]):
+    """
+    return [
+        apply_template(tokenizer, get_prompt_for_question_generation(cut_context(tokenizer, str(doc)))) for doc in text_list if doc is not None
+    ]
+
+
+def build_answering_prompt(tokenizer: AutoTokenizer, queries: List[str], candidates: List[str]) -> List[str]:
     """ build input prompt for answering the questions from users by using vllm generative backend
 
     Args:
@@ -18,14 +31,8 @@ def build_prompt(tokenizer: AutoTokenizer, queries: List[str], candidates: List[
     ]
 
 
-def initialize_llm(model_name: str, max_length: int, max_seq_len_to_capture: int, q_method: str) -> LLM:
+def initialize_llm(cfg: CFG) -> LLM:
     """ wrapper function for initializing the vLLM LLM Engine class
-
-    Args:
-        model_name (str): model name from huggingface model hub or local model path
-        max_length (int): model's max context length, you must pass the default value of model
-        max_seq_len_to_capture (int): maximum value of input sequence (<= max_length)
-        q_method (str): quantization method of model, passing this function
 
     LLM Module's Param:
         model: The name or path of a HuggingFace Transformers model.
@@ -94,12 +101,12 @@ def initialize_llm(model_name: str, max_length: int, max_seq_len_to_capture: int
 
     """
     return LLM(
-        model=model_name,
-        tensor_parallel_size=1,
-        gpu_memory_utilization=0.8,
-        max_model_len=max_length,
-        max_seq_len_to_capture=max_seq_len_to_capture,
-        quantization=q_method,
+        model=cfg.generator_name,
+        tensor_parallel_size=cfg.tensor_parallel_size,
+        gpu_memory_utilization=cfg.gpu_memory_utilization,
+        max_model_len=21153,
+        max_seq_len_to_capture=cfg.generator_max_len,
+        quantization=cfg.q_method,
         trust_remote_code=True,
         swap_space=0
     )
@@ -130,7 +137,3 @@ def do_inference(llm: LLM, inputs: List[str], sampling_params: SamplingParams):
         inputs,
         sampling_params=sampling_params
     )
-
-
-def slice_full_questions(output: str):
-    pass

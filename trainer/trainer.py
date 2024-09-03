@@ -11,11 +11,8 @@ import dataset_class.dataclass as dataset_class
 from tqdm.auto import tqdm
 from configuration import CFG
 from model import model as task
-from elasticsearch import Elasticsearch
 from typing import Union, List, Callable, Dict
 from transformers import AutoConfig, AutoTokenizer
-
-from db.run_db import get_encoder
 from dataset_class.preprocessing import dataset_split, load_all_types_dataset
 
 from trainer.collator_fn import BatchCollatorFunc
