@@ -1,3 +1,5 @@
+"""python module for inference-pipeline by using vLLM from UC Berkeley
+"""
 from typing import List
 from configuration import CFG
 from vllm import LLM, SamplingParams

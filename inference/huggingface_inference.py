@@ -1,3 +1,5 @@
+"""python module for inference-pipeline by using Huggingface generate()
+"""
 import torch
 import torch.nn as nn
 
