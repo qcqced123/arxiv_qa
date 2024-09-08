@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-query Generator</title>
+    <script>
+        async function submitQueries() {
+            const queryInputs = document.querySelectorAll('.query-input');
+            let queries = [];
+
+            queryInputs.forEach(input => {
+                if (input.value) {
+                    queries.push({ question: input.value });
+                }
+            });
+
+            if (queries.length === 0) {
+                alert('Please enter at least one query');
+                return;
+            }
+
+            const response = await fetch('http://127.0.0.1:8000/generate-answers/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ queries }),
+            });
+
+            const result = await response.json();
+            const responseDiv = document.getElementById('response');
+            responseDiv.innerHTML = '';
+
+            result.responses.forEach(res => {
+                const p = document.createElement('p');
+                p.textContent = `Question: ${res.question}, Answer: ${res.answer}`;
+                responseDiv.appendChild(p);
+            });
+        }
+
+        function addQueryInput() {
+            const queryContainer = document.getElementById('queries');
+            const newInput = document.createElement('input');
+            newInput.type = 'text';
+            newInput.className = 'query-input';
+            newInput.placeholder = 'Enter a question';
+            queryContainer.appendChild(newInput);
+        }
+    </script>
+</head>
+<body>
+    <h1>Query Generator</h1>
+
+    <div id="queries">
+        <input type="text" class="query-input" placeholder="Enter a question" />
+    </div>
+
+    <button onclick="addQueryInput()">Add Another Question</button>
+    <button onclick="submitQueries()">Submit Queries</button>
+
+    <div id="response"></div>
+</body>
+</html>

@@ -1,3 +1,4 @@
+import os
 import numpy as np
 import pandas as pd
 
@@ -9,6 +10,7 @@ from tqdm.auto import tqdm
 from typing import List, Dict
 from configuration import CFG
 from dotenv import load_dotenv
+from huggingface_hub import login
 from elasticsearch import Elasticsearch
 from db.index_mapping import indexMapping
 from db.helper import get_config, get_tokenizer, get_qlora_model
@@ -17,6 +19,23 @@ from model.pooling import MeanPooling
 from transformers import AutoTokenizer
 
 load_dotenv()
+
+
+def login_to_huggingface() -> None:
+    login(os.environ.get("HUGGINGFACE_API_KEY"))
+    return
+
+
+def get_db_url():
+    return os.environ.get('ELASTIC_ENGINE_URL')
+
+
+def get_db_auth(os_type: str) -> str:
+    return os.environ.get('MAC_ELASTIC_ENGINE_PASSWORD') if os_type == "Darwin" else os.environ.get('LINUX_ELASTIC_ENGINE_PASSWORD')
+
+
+def get_db_cert(os_type: str) -> str:
+    return os.environ.get('MAC_CA_CERTS') if os_type == "Darwin" else os.environ.get('LINUX_CA_CERTS')
 
 
 def create_index(es: Elasticsearch) -> None:

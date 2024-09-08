@@ -18,6 +18,7 @@ from utils.helper import check_library, all_type_seed
 
 from db.helper import get_tokenizer
 from db.run_db import run_engine, get_encoder
+from db.run_db import login_to_huggingface, get_db_url, get_db_auth, get_db_cert
 
 from configuration import CFG
 from document_encoder.document_encoder import document_encoder
@@ -46,23 +47,6 @@ g.manual_seed(CFG.seed)
 
 # global variables
 base_path = r"api/arxiv/train/"
-
-
-def login_to_huggingface() -> None:
-    login(os.environ.get("HUGGINGFACE_API_KEY"))
-    return
-
-
-def get_db_url():
-    return os.environ.get('ELASTIC_ENGINE_URL')
-
-
-def get_db_auth(os_type: str) -> str:
-    return os.environ.get('MAC_ELASTIC_ENGINE_PASSWORD') if os_type == "Darwin" else os.environ.get('LINUX_ELASTIC_ENGINE_PASSWORD')
-
-
-def get_db_cert(os_type: str) -> str:
-    return os.environ.get('MAC_CA_CERTS') if os_type == "Darwin" else os.environ.get('LINUX_CA_CERTS')
 
 
 def make_loop(path_list: List[str]) -> List:

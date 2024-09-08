@@ -18,6 +18,7 @@ from inference.helper import apply_normalizer
 from inference.post_process import slice_full_questions
 from inference.vllm_inference import build_generating_prompt, build_answering_prompt, do_inference
 
+
 g = torch.Generator()
 g.manual_seed(CFG.seed)
 
@@ -155,15 +156,17 @@ def inference_loop(
     cfg: CFG,
     retriever_dict: Dict,
     generator_dict: Dict,
-    es: Elasticsearch
+    es: Elasticsearch,
+    queries: List[str] = None
 ) -> List[str]:
     """ inference function for making the answer to each input queries with elastic search, vllm backend
 
     Args:
         cfg (CFG): configuration module for inferencing
-        retriever_dict (Dict):
-        generator_dict (Dict):
+        retriever_dict (Dict): dictionary module for retriever object, this module contain tokenizer, retriever model
+        generator_dict (Dict): dictionary module for generator object, this module contain tokenizer, generator model
         es (Elasticsearch):
+        queries (List[str]):
 
     workflow:
         1) get multiple-inputs from multiple-users
@@ -173,17 +176,17 @@ def inference_loop(
             - find the optimal input prompt shape
         4) generate the answer from question, using the vllm backend
     """
-    # get multiple-queries from multiple-users
-    queries = [
-        "What is the self-attention mechanism in transformer?",
-        "What is the Retrieval Augmented Generation (RAG) model?",
-        "Why the self-attention mechanism use the Q, K, V matrix?",
-        "How to train the transformer model?",
-        "How to implement the block-sparse attention from BigBird paper?",
-        "Tell me about the more detail of self-attention mechanism in transformer",
-        "Why the transformer model add the two different matrix, word embedding and positional encoding?",
-        "What is the main concept of Activation Aware Quantization?",
-    ]
+    if queries is None:
+        queries = [
+            "What is the self-attention mechanism in transformer?",
+            "What is the Retrieval Augmented Generation (RAG) model?",
+            "Why the self-attention mechanism use the Q, K, V matrix?",
+            "How to train the transformer model?",
+            "How to implement the block-sparse attention from BigBird paper?",
+            "Tell me about the more detail of self-attention mechanism in transformer",
+            "Why the transformer model add the two different matrix, word embedding and positional encoding?",
+            "What is the main concept of Activation Aware Quantization?",
+        ]
 
     # reference the retriever module
     retriever = retriever_dict["retriever"]
@@ -210,14 +213,14 @@ def inference_loop(
     size = len(prompts) // 4  # number of users
     chunked = [prompts[i:i + size] for i in range(0, len(prompts), size)]
 
-    questions = []
+    answers = []
     for sub in tqdm(chunked):
         outputs = do_inference(
             llm=generator,
             inputs=sub,
             sampling_params=sampling_params
         )
-        questions.extend([output.outputs[0].text for output in outputs])
+        answers.extend([output.outputs[0].text for output in outputs])
 
-    return questions
+    return answers
 
