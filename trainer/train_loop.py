@@ -210,7 +210,7 @@ def inference_loop(
         candidates=candidates
     )
 
-    size = len(prompts) // 4  # number of users
+    size = len(prompts) // 4 if len(prompts) // 4 else len(prompts)  # number of users
     chunked = [prompts[i:i + size] for i in range(0, len(prompts), size)]
 
     answers = []

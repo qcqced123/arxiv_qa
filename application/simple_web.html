@@ -3,7 +3,84 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-query Generator</title>
+    <title>Interactive Query Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        h1 {
+            color: #333;
+        }
+
+        .query-input {
+            width: 100%;
+            height: 50px;
+            margin-bottom: 10px;
+            padding: 10px;
+            font-size: 16px;
+        }
+
+        .query-container {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .query-container button {
+            margin-left: 10px;
+            background-color: red;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+        }
+
+        #chat-box {
+            border: 1px solid #ddd;
+            padding: 10px;
+            max-height: 500px;
+            overflow-y: auto;
+            background-color: #f9f9f9;
+            margin-bottom: 20px;
+        }
+
+        .message {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            width: fit-content;
+        }
+
+        .user-message {
+            background-color: #d1e7dd;
+            align-self: flex-start;
+        }
+
+        .bot-message {
+            background-color: #e7e7ff;
+            align-self: flex-end;
+        }
+
+        #response {
+            display: flex;
+            flex-direction: column;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
     <script>
         async function submitQueries() {
             const queryInputs = document.querySelectorAll('.query-input');
@@ -20,6 +97,15 @@
                 return;
             }
 
+            // Clear input fields and display user questions in the chat box
+            queryInputs.forEach(input => {
+                if (input.value) {
+                    addChatMessage(input.value, 'user');
+                    input.value = '';
+                }
+            });
+
+            // Send request to the backend
             const response = await fetch('http://127.0.0.1:8000/generate-answers/', {
                 method: 'POST',
                 headers: {
@@ -28,37 +114,60 @@
                 body: JSON.stringify({ queries }),
             });
 
+            // Process the result and display the answers in the chat box
             const result = await response.json();
-            const responseDiv = document.getElementById('response');
-            responseDiv.innerHTML = '';
-
             result.responses.forEach(res => {
-                const p = document.createElement('p');
-                p.textContent = `Question: ${res.question}, Answer: ${res.answer}`;
-                responseDiv.appendChild(p);
+                addChatMessage(`Q: ${res.question}\nA: ${res.answer}`, 'bot');
             });
         }
 
         function addQueryInput() {
             const queryContainer = document.getElementById('queries');
+            const newQueryContainer = document.createElement('div');
+            newQueryContainer.className = 'query-container';
+
             const newInput = document.createElement('input');
             newInput.type = 'text';
             newInput.className = 'query-input';
             newInput.placeholder = 'Enter a question';
-            queryContainer.appendChild(newInput);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.textContent = 'Delete';
+            deleteButton.onclick = function() {
+                queryContainer.removeChild(newQueryContainer);
+            };
+
+            newQueryContainer.appendChild(newInput);
+            newQueryContainer.appendChild(deleteButton);
+            queryContainer.appendChild(newQueryContainer);
+        }
+
+        // Function to add messages to the chat-like interface
+        function addChatMessage(text, sender) {
+            const chatBox = document.getElementById('chat-box');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${sender === 'user' ? 'user-message' : 'bot-message'}`;
+            messageDiv.textContent = text;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;  // Scroll to the latest message
         }
     </script>
 </head>
 <body>
-    <h1>Query Generator</h1>
+    <h1>Interactive Query Generator</h1>
 
+    <!-- Chat box to display questions and answers -->
+    <div id="chat-box"></div>
+
+    <!-- Input fields for entering queries -->
     <div id="queries">
-        <input type="text" class="query-input" placeholder="Enter a question" />
+        <div class="query-container">
+            <input type="text" class="query-input" placeholder="Enter a question" />
+        </div>
     </div>
 
     <button onclick="addQueryInput()">Add Another Question</button>
     <button onclick="submitQueries()">Submit Queries</button>
 
-    <div id="response"></div>
 </body>
 </html>

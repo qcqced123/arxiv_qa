@@ -1,12 +1,12 @@
 from fastapi import FastAPI
-from model import QueryList
 from typing import List, Dict
 from configuration import CFG
 from omegaconf import OmegaConf
 from utils.util import sync_config
+from application.model import QueryList
 from fastapi.middleware.cors import CORSMiddleware
-from utils import make_queries, make_templates, call_inference_api
-from utils import initialize_es, initialize_retriever, initialize_generator
+from application.utils import make_queries, make_templates, call_inference_api
+from application.utils import initialize_es, initialize_retriever, initialize_generator
 
 # initialize the FastAPI Module
 app = FastAPI()
@@ -20,7 +20,7 @@ app.add_middleware(
 
 # initialize the configuration module
 cfg = CFG
-config_path = f'../config/inference/microsoft_e5_phi3.5.json'
+config_path = f'config/inference/microsoft_e5_phi3.5.json'
 sync_config(
     cfg,
     OmegaConf.load(config_path)

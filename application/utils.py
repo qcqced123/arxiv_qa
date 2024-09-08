@@ -2,7 +2,7 @@
 """
 import platform
 
-from model import QueryList
+from application.model import QueryList
 from configuration import CFG
 from typing import List, Dict, Tuple
 from db.helper import get_tokenizer
