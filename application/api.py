@@ -48,7 +48,7 @@ async def interface_fn(queries: QueryList) -> Dict:
         queries=queries
     )
 
-    answer_list = await call_inference_api(
+    answer_list = call_inference_api(
         cfg=cfg,
         retriever_dict=retriever_dict,
         generator_dict=generator_dict,
