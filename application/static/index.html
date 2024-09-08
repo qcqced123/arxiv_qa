@@ -7,19 +7,29 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
+            background-color: #f1f1f1;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
         }
 
         h1 {
             color: #333;
+            text-align: center;
+            font-size: 24px;
+            margin-bottom: 20px;
         }
 
         .query-input {
             width: 100%;
-            height: 50px;
+            height: 40px;
             margin-bottom: 10px;
             padding: 10px;
             font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
         }
 
         .query-container {
@@ -34,38 +44,40 @@
             color: white;
             border: none;
             padding: 8px 12px;
+            border-radius: 5px;
             cursor: pointer;
         }
 
         #chat-box {
             border: 1px solid #ddd;
-            padding: 10px;
-            max-height: 500px;
+            background-color: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            max-height: 60%;
             overflow-y: auto;
-            background-color: #f9f9f9;
+            display: flex;
+            flex-direction: column;
             margin-bottom: 20px;
         }
 
         .message {
-            padding: 10px;
+            padding: 15px;
             margin: 10px 0;
             border-radius: 10px;
-            width: fit-content;
+            max-width: 80%;
+            word-wrap: break-word;
         }
 
         .user-message {
             background-color: #d1e7dd;
-            align-self: flex-start;
+            align-self: flex-end;
+            color: #333;
         }
 
         .bot-message {
             background-color: #e7e7ff;
-            align-self: flex-end;
-        }
-
-        #response {
-            display: flex;
-            flex-direction: column;
+            align-self: flex-start;
+            color: #333;
         }
 
         button {
@@ -74,15 +86,41 @@
             padding: 10px 20px;
             border: none;
             cursor: pointer;
-            margin-top: 10px;
+            border-radius: 5px;
         }
 
         button:hover {
             background-color: #45a049;
         }
+
+        #action-buttons {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+
+        footer {
+            text-align: center;
+            color: #aaa;
+            font-size: 12px;
+            margin-top: auto;
+        }
     </style>
     <script>
+        let apiBaseUrl = '';
+
+        async function fetchNgrokUrl() {
+            const response = await fetch('/ngrok-url');
+            const data = await response.json();
+            apiBaseUrl = data.url;
+        }
+
         async function submitQueries() {
+            if (!apiBaseUrl) {
+                alert('API base URL is not available.');
+                return;
+            }
+
             const queryInputs = document.querySelectorAll('.query-input');
             let queries = [];
 
@@ -105,8 +143,8 @@
                 }
             });
 
-            // Send request to the backend
-            const response = await fetch('http://127.0.0.1:8000/generate-answers/', {
+            // Send request to the backend using the ngrok URL
+            const response = await fetch(`${apiBaseUrl}/generate-answers/`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -114,10 +152,10 @@
                 body: JSON.stringify({ queries }),
             });
 
-            // Process the result and display the answers in the chat box
+            // Process the result and display only the answers in the chat box
             const result = await response.json();
             result.responses.forEach(res => {
-                addChatMessage(`Q: ${res.question}\nA: ${res.answer}`, 'bot');
+                addChatMessage(res.answer, 'bot');
             });
         }
 
@@ -151,12 +189,15 @@
             chatBox.appendChild(messageDiv);
             chatBox.scrollTop = chatBox.scrollHeight;  // Scroll to the latest message
         }
+
+        // Fetch the ngrok URL on page load
+        document.addEventListener('DOMContentLoaded', fetchNgrokUrl);
     </script>
 </head>
 <body>
-    <h1>Interactive Query Generator</h1>
+    <h1>Arxiv Paper (CS/AI/ML): Interactive Question-Answering</h1>
 
-    <!-- Chat box to display questions and answers -->
+    <!-- Chat box to display only answers -->
     <div id="chat-box"></div>
 
     <!-- Input fields for entering queries -->
@@ -166,8 +207,11 @@
         </div>
     </div>
 
-    <button onclick="addQueryInput()">Add Another Question</button>
-    <button onclick="submitQueries()">Submit Queries</button>
+    <div id="action-buttons">
+        <button onclick="addQueryInput()">Add Another Question</button>
+        <button onclick="submitQueries()">Submit Queries</button>
+    </div>
 
+    <footer>&copy; 2024 Interactive Question-Answering for Arxiv Paper(CS/AI/ML)</footer>
 </body>
 </html>
