@@ -228,8 +228,7 @@ class ContrastiveLoss(nn.Module):
 
     def forward(self, query_h: Tensor, context_h: Tensor, labels: Tensor) -> Tensor:
         distance = self.distance(query_h, context_h)
-        contrastive_loss = 0.5 * (labels.float() * torch.pow(distance, 2) +
-                                  (1 - labels.float()) * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2))
+        contrastive_loss = 0.5 * (labels.float() * torch.pow(distance, 2) + (1 - labels.float()) * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2))
         return contrastive_loss.mean()
 
 
@@ -245,7 +244,7 @@ class BatchDotProductContrastiveLoss(nn.Module):
         margin: margin for negative pairs, default: 1.0
 
     Maths:
-        losses(x, y) = 0.5 * (y * distance(x1, x2) + (1 - y) * max(margin - distance(x1, x2), 0))
+        losses(x1, x2, y) = 0.5 * (y * distance(x1, x2) + (1 - y) * max(margin - distance(x1, x2), 0))
     """
     def __init__(self, metric: str = 'cosine', margin: int = 1.0) -> None:
         super(BatchDotProductContrastiveLoss, self).__init__()
@@ -267,8 +266,7 @@ class BatchDotProductContrastiveLoss(nn.Module):
     def forward(self, emb: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         labels = self.elementwise_labels(labels)
         distance = self.distance.select_distance(emb, emb)
-        contrastive_loss = 0.5 * (labels.float() * torch.pow(distance, 2) +
-                                  (1 - labels.float()) * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2))
+        contrastive_loss = 0.5 * (labels.float() * torch.pow(distance, 2) + (1 - labels.float()) * torch.pow(torch.clamp(self.margin - distance, min=0.0), 2))
         contrastive_loss = torch.sum(torch.triu(contrastive_loss, diagonal=1))
         return contrastive_loss / labels.shape[0]
 
@@ -310,7 +308,8 @@ class BatchInfoNCELoss(nn.Module):
         Pij = j-th positive pooling output from MeanPooling
 
     References:
-        https://arxiv.org/pdf/1807.03748
+        https://arxiv.org/pdf/1206.6426
+        https://arxiv.org/pdf/1809.01812
         https://arxiv.org/pdf/2212.03533
         https://paperswithcode.com/method/infonce
     """
@@ -358,7 +357,7 @@ class InfoNCELoss(nn.Module):
         Pij = j-th positive pooling output from MeanPooling
 
     References:
-        https://arxiv.org/pdf/1807.03748
+        https://arxiv.org/pdf/1809.01812
         https://arxiv.org/pdf/2212.03533
         https://paperswithcode.com/method/infonce
     """
@@ -374,7 +373,8 @@ class InfoNCELoss(nn.Module):
 
 
 class ArcFace(nn.Module):
-    """ArcFace Pytorch Implementation
+    """ ArcFace(Additive Angular Margin Loss) Pytorch Implementation
+    ArcFace = multiplicative angular margin + additive angular margin + additive cosine margin
 
     Args:
         dim_model: size of hidden states(latent vector)
@@ -398,13 +398,13 @@ class ArcFace(nn.Module):
         self.dim_model = dim_model
         self.num_classes = num_classes
         self.device = device
-        self.s = s
-        self.m = m
+        self.s = s  # size of hypersphere
+        self.m = m  # angular margin (SphereFace, ArcFace)
         self.w = nn.Parameter(torch.FloatTensor(dim_model, num_classes))
         nn.init.kaiming_uniform_(self.w)  # same as nn.Linear
 
-        self.cos_m = math.cos(self.m)
-        self.sin_m = math.sin(self.m)
+        self.cos_m = math.cos(self.m)  # cosine margin (CosFace)
+        self.sin_m = math.sin(self.m)  # ??
         self.th = math.cos(math.pi - m)  # for taylor series
         self.mm = math.sin(math.pi - m) * m  # for taylor series
 
@@ -414,6 +414,7 @@ class ArcFace(nn.Module):
             inputs: Tensor, compressed hidden states from model's last encoder layer
             labels: Tensor, target labels for training
         """
+        # for calculating the angular between target class vector and hidden state vector
         cosine = torch.matmul(F.normalize(inputs), F.normalize(self.w))
         sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(0, 1))
         z = cosine*self.cos_m - sine*self.sin_m

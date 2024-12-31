@@ -115,7 +115,7 @@ def main(cfg: CFG, pipeline_type: str, model_config: str) -> None:
 
             - make the document dataframe for document embedding db
             - generate the question data by using any generator llm such as
-              (microsoft/Phi-3-mini-128k-instruct, meta-llama2-7b-hf, google-gemini-1.5-flash)
+              (microsoft/Phi-3-mini-128k-instruct)
 
             - insert final document dataframe into the MySQL DB Server
 

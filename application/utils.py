@@ -1,11 +1,12 @@
-"""utils module for
+"""utils module for running application
 """
 import platform
 
-from application.model import QueryList
+
 from configuration import CFG
-from typing import List, Dict, Tuple
 from db.helper import get_tokenizer
+from typing import List, Dict, Tuple
+from application.model import QueryList
 from elasticsearch import Elasticsearch
 from trainer.train_loop import inference_loop
 from db.run_db import get_encoder, run_engine

@@ -31,6 +31,8 @@ app.add_middleware(
 )
 static_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "static")
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+
 @app.get("/", response_class=HTMLResponse)
 async def root():
     with open(os.path.join(static_dir, "index.html"), "r", encoding="utf-8") as f:
@@ -46,6 +48,7 @@ def start_ngrok():
     public_url = tunnel.public_url
     print(f" * Ngrok tunnel available at: {tunnel}")
     print(f" * You can access your app at {tunnel}/")
+
 
 @app.get("/ngrok-url")
 async def get_ngrok_url():
