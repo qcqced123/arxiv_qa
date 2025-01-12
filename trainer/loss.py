@@ -371,60 +371,77 @@ class InfoNCELoss(nn.Module):
         nce_loss = -1 * torch.log(pos_score / (pos_score + neg_score)).mean()
         return nce_loss
 
-
 class ArcFace(nn.Module):
-    """ ArcFace(Additive Angular Margin Loss) Pytorch Implementation
-    ArcFace = multiplicative angular margin + additive angular margin + additive cosine margin
+    """ ArcFace (Additive Angular Margin Loss) Pytorch Implementation
+    1) calculate the angular between hidden state vectors and class vectors
+    2) add the margin penalty to angular between hidden state vectors and class vectors by "trigonometric identity"
+    3) exception handling: when theta+margin will bigger than pi by using taylor series
+        - in real implementation, we do not use the additive margin, but use the subtractive margin for reducing complexity
+
+        - additive margin will easily overflow the valid range of theta for cosine func
+
+        - theta must be ranged at [0, π], because cosine func must be monotonically decreasing for calculating the similarity
+            - the closer theta is to zero, the larger the value of cosine theta is defined to be for greater similarity,
+            - the smaller the value of cosine theta is defined to be for less similarity.
+
+        - the additive margin method has a higher percentage of threshold crossings and larger threshold deviations,
+          requiring the use of higher order term approximations in the Taylor series approximation.
+
+        - higher-order approximations are not a good idea because they increase computational cost.
+
+        - but, the subtractive margin method, requires only a relatively low-order approximation to approximate
+          the cosine function as monotonically increasing, which is less computationally expensive.
+
+    4) calculate the loss:
+        - intra-class loss will be calculated by term of "z" (applying the subtract angular margin)
+        - inter-class loss will be calculated by term of "cosine" (not applying the subtract angular margin)
 
     Args:
-        dim_model: size of hidden states(latent vector)
+        dim_model: value of last hidden state dimension, latent vector space's dimension size
         num_classes: num of target classes
         s: re-scale scaler, default 30.0
-        m: Additive Angular Margin Penalty
+        m: additive angular margin loss default 0.5
 
     References:
         https://arxiv.org/abs/1801.07698
         https://github.com/wujiyang/Face_Pytorch/blob/master/margin/ArcMarginProduct.py
+        https://velog.io/@hoho_dev/ArcFace-Additive-Angular-Margin-Loss-for-Deep-Face-Recognition
     """
-    def __init__(
-        self,
-        dim_model: int = 768,
-        num_classes: int = 10,
-        s: int = 30.0,
-        m: int = 0.50,
-        device: str = 'cpu'
-    ) -> None:
+    def __init__(self, dim_model: int, num_classes: int, s: int = 30.0, m: int = 0.50) -> None:
         super(ArcFace, self).__init__()
-        self.dim_model = dim_model
-        self.num_classes = num_classes
-        self.device = device
-        self.s = s  # size of hypersphere
-        self.m = m  # angular margin (SphereFace, ArcFace)
-        self.w = nn.Parameter(torch.FloatTensor(dim_model, num_classes))
+        self.s = s
+        self.m = m
+        self.w = nn.Parameter(torch.FloatTensor(num_classes, dim_model))  # for removing the bias term
         nn.init.kaiming_uniform_(self.w)  # same as nn.Linear
 
-        self.cos_m = math.cos(self.m)  # cosine margin (CosFace)
-        self.sin_m = math.sin(self.m)  # ??
+        self.cos_m = math.cos(self.m)  # for adding the angular margin to theta from hidden state vector and class vector
+        self.sin_m = math.sin(self.m)  # for adding the angular margin to theta from hidden state vector and class vector
         self.th = math.cos(math.pi - m)  # for taylor series
         self.mm = math.sin(math.pi - m) * m  # for taylor series
 
     def forward(self, inputs: Tensor, labels: Tensor) -> Tensor:
         """
         Args:
-            inputs: Tensor, compressed hidden states from model's last encoder layer
-            labels: Tensor, target labels for training
+            inputs: hidden state vector from last encoder, layer
+            labels: v-stacked vector of each input's label
         """
-        # for calculating the angular between target class vector and hidden state vector
-        cosine = torch.matmul(F.normalize(inputs), F.normalize(self.w))
+        # calculate the angular between hidden state vectors and class vectors
+        cosine = torch.matmul(F.normalize(self.w), F.normalize(inputs))
+
+        # add the margin penalty to angular between hidden state vectors and class vectors by "trigonometric identity"
         sine = torch.sqrt((1.0 - torch.pow(cosine, 2)).clamp(0, 1))
         z = cosine*self.cos_m - sine*self.sin_m
-        z = torch.where(cosine > self.th, z, cosine - self.mm)
-        one_hot = torch.zeros(cosine.size(), device=self.device)
-        one_hot.scatter_(1, labels.view(-1, 1).long(), 1)
-        logit = (one_hot * z) + ((1.0 - one_hot) * cosine)
-        logit *= self.s
-        return logit
 
+        # exception handling: when theta+margin will bigger than pi by using taylor series
+        z = torch.where(cosine > self.th, z, cosine - self.mm)
+        one_hot = torch.zeros(cosine.size(), device='cuda')
+        one_hot.scatter_(1, labels.view(-1, 1).long(), 1)
+
+        # z: term of applying the subtractive margin for intra-relation between hidden state and class vectors
+        # cosine: term of not applying the subtractive margin for inter-relation between hidden state and class vectors
+        loss = (one_hot * z) + ((1.0 - one_hot) * cosine)
+        loss *= self.s
+        return loss
 
 # Multiple Negative Ranking Loss, source code from UKPLab
 class MultipleNegativeRankingLoss(nn.Module):
